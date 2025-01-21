@@ -2,7 +2,7 @@
 import os
 
 os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/custom_rasterizer && pip install .")
+os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
 
 import shutil
 import time
