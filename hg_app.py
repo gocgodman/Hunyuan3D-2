@@ -1,4 +1,28 @@
 import os
+import spaces
+import subprocess
+def install_cuda_toolkit():
+    # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
+    CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_535.54.03_linux.run"
+    CUDA_TOOLKIT_FILE = "/tmp/%s" % os.path.basename(CUDA_TOOLKIT_URL)
+    subprocess.call(["wget", "-q", CUDA_TOOLKIT_URL, "-O", CUDA_TOOLKIT_FILE])
+    subprocess.call(["chmod", "+x", CUDA_TOOLKIT_FILE])
+    subprocess.call([CUDA_TOOLKIT_FILE, "--silent", "--toolkit"])
+
+    os.environ["CUDA_HOME"] = "/usr/local/cuda"
+    os.environ["PATH"] = "%s/bin:%s" % (os.environ["CUDA_HOME"], os.environ["PATH"])
+    os.environ["LD_LIBRARY_PATH"] = "%s/lib:%s" % (
+        os.environ["CUDA_HOME"],
+        "" if "LD_LIBRARY_PATH" not in os.environ else os.environ["LD_LIBRARY_PATH"],
+    )
+    # Fix: arch_list[-1] += '+PTX'; IndexError: list index out of range
+    os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
+
+install_cuda_toolkit()
+os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
+
+import os
 import shutil
 import time
 from glob import glob
@@ -81,7 +105,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-
+@spaces.GPU(duration=40)
 def _gen_shape(
     caption,
     image,
@@ -140,7 +164,7 @@ def _gen_shape(
     stats['time'] = time_meta
     return mesh, save_folder
 
-
+@spaces.GPU(duration=60)
 def generation_all(
     caption,
     image,
@@ -173,7 +197,7 @@ def generation_all(
         model_viewer_html_textured,
     )
 
-
+@spaces.GPU(duration=40)
 def shape_generation(
     caption,
     image,
@@ -331,7 +355,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8080)
     parser.add_argument('--cache-path', type=str, default='gradio_cache')
-    parser.add_argument('--enable_t23d', action='store_true')
+    parser.add_argument('--enable_t23d', default=True)
     args = parser.parse_args()
 
     SAVE_DIR = args.cache_path
@@ -389,4 +413,4 @@ if __name__ == '__main__':
 
     demo = build_app()
     app = gr.mount_gradio_app(app, demo, path="/")
-    uvicorn.run(app, host="0.0.0.0", port=args.port)
+    uvicorn.run(app)

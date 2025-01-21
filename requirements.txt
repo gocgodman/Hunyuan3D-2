@@ -31,3 +31,5 @@ onnxruntime
 pygltflib
 sentencepiece
 gradio
+uvicorn
+fastapi

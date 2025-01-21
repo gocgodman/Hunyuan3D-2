@@ -61,7 +61,7 @@ class Hunyuan3DPaintPipeline:
         original_model_path = model_path
         if not os.path.exists(model_path):
             # try local path
-            base_dir = os.environ.get('HY3DGEN_MODELS', '/home/user/.cache/hy3dgen')
+            base_dir = os.environ.get('HY3DGEN_MODELS', '~/.cache/hy3dgen')
             model_path = os.path.expanduser(os.path.join(base_dir, model_path))
 
             delight_model_path = os.path.join(model_path, 'hunyuan3d-delight-v2-0')
@@ -70,12 +70,10 @@ class Hunyuan3DPaintPipeline:
             if not os.path.exists(delight_model_path) or not os.path.exists(multiview_model_path):
                 try:
                     import huggingface_hub
-                    path = huggingface_hub.snapshot_download(
-                        repo_id=original_model_path, 
-                        resume_download=True
-                    )
-                    delight_model_path = os.path.join(path, 'hunyuan3d-delight-v2-0')
-                    multiview_model_path = os.path.join(path, 'hunyuan3d-paint-v2-0')
+                    # download from huggingface
+                    model_path = huggingface_hub.snapshot_download(repo_id=original_model_path)
+                    delight_model_path = os.path.join(model_path, 'hunyuan3d-delight-v2-0')
+                    multiview_model_path = os.path.join(model_path, 'hunyuan3d-paint-v2-0')
                     return cls(Hunyuan3DTexGenConfig(delight_model_path, multiview_model_path))
                 except ImportError:
                     logger.warning(
