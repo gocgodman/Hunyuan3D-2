@@ -1,19 +1,6 @@
 # pip install gradio==3.39.0
 import os
-
-os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
-
-import shutil
-import time
-from glob import glob
-
-import gradio as gr
-import torch
-
-import spaces
-
-
+import subprocess
 def install_cuda_toolkit():
     # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
     CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_535.54.03_linux.run"
@@ -31,8 +18,18 @@ def install_cuda_toolkit():
     # Fix: arch_list[-1] += '+PTX'; IndexError: list index out of range
     os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
 
-
 install_cuda_toolkit()
+os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
+
+import shutil
+import time
+from glob import glob
+
+import gradio as gr
+import torch
+
+import spaces
 
 def get_example_img_list():
     print('Loading example img list ...')
