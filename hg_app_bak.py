@@ -1,28 +1,38 @@
-# pip install gradio==3.39.0
+# pip install gradio==4.44.1
+if False:
+    import os
+    import spaces
+    import subprocess
+    def install_cuda_toolkit():
+        # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
+        CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_535.54.03_linux.run"
+        CUDA_TOOLKIT_FILE = "/tmp/%s" % os.path.basename(CUDA_TOOLKIT_URL)
+        subprocess.call(["wget", "-q", CUDA_TOOLKIT_URL, "-O", CUDA_TOOLKIT_FILE])
+        subprocess.call(["chmod", "+x", CUDA_TOOLKIT_FILE])
+        subprocess.call([CUDA_TOOLKIT_FILE, "--silent", "--toolkit"])
+    
+        os.environ["CUDA_HOME"] = "/usr/local/cuda"
+        os.environ["PATH"] = "%s/bin:%s" % (os.environ["CUDA_HOME"], os.environ["PATH"])
+        os.environ["LD_LIBRARY_PATH"] = "%s/lib:%s" % (
+            os.environ["CUDA_HOME"],
+            "" if "LD_LIBRARY_PATH" not in os.environ else os.environ["LD_LIBRARY_PATH"],
+        )
+        # Fix: arch_list[-1] += '+PTX'; IndexError: list index out of range
+        os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
+    
+    install_cuda_toolkit()
+    os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+    os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
+    # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
+else:
+    class spaces:
+        class GPU:
+            def __init__(self, duration=60):
+                self.duration = duration
+            def __call__(self, func):
+                return func 
+
 import os
-import subprocess
-def install_cuda_toolkit():
-    # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
-    CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_535.54.03_linux.run"
-    CUDA_TOOLKIT_FILE = "/tmp/%s" % os.path.basename(CUDA_TOOLKIT_URL)
-    subprocess.call(["wget", "-q", CUDA_TOOLKIT_URL, "-O", CUDA_TOOLKIT_FILE])
-    subprocess.call(["chmod", "+x", CUDA_TOOLKIT_FILE])
-    subprocess.call([CUDA_TOOLKIT_FILE, "--silent", "--toolkit"])
-
-    os.environ["CUDA_HOME"] = "/usr/local/cuda"
-    os.environ["PATH"] = "%s/bin:%s" % (os.environ["CUDA_HOME"], os.environ["PATH"])
-    os.environ["LD_LIBRARY_PATH"] = "%s/lib:%s" % (
-        os.environ["CUDA_HOME"],
-        "" if "LD_LIBRARY_PATH" not in os.environ else os.environ["LD_LIBRARY_PATH"],
-    )
-    # Fix: arch_list[-1] += '+PTX'; IndexError: list index out of range
-    os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
-
-install_cuda_toolkit()
-os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
-# os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
-
 import shutil
 import time
 from glob import glob
@@ -30,7 +40,6 @@ import gradio as gr
 import torch
 from gradio_litmodel3d import LitModel3D
 
-import spaces
 
 def get_example_img_list():
     print('Loading example img list ...')

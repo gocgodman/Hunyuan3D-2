@@ -105,7 +105,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-@spaces.GPU(duration=40)
+@spaces.GPU(duration=60)
 def _gen_shape(
     caption,
     image,
@@ -164,7 +164,7 @@ def _gen_shape(
     stats['time'] = time_meta
     return mesh, save_folder
 
-@spaces.GPU(duration=60)
+@spaces.GPU(duration=120)
 def generation_all(
     caption,
     image,
@@ -197,7 +197,7 @@ def generation_all(
         model_viewer_html_textured,
     )
 
-@spaces.GPU(duration=40)
+@spaces.GPU(duration=60)
 def shape_generation(
     caption,
     image,
