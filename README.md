@@ -7,6 +7,7 @@ sdk: gradio
 sdk_version: 3.39.0
 app_file: gradio_app.py
 pinned: false
+python_version: 3.11
 short_description: Text-to-3D and Image-to-3D Generation
 ---
 
