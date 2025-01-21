@@ -26,9 +26,9 @@ os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
 import shutil
 import time
 from glob import glob
-
 import gradio as gr
 import torch
+from gradio_litmodel3d import LitModel3D
 
 import spaces
 
@@ -187,8 +187,10 @@ def generation_all(
     return (
         gr.update(value=path, visible=True),
         gr.update(value=path_textured, visible=True),
-        model_viewer_html,
-        model_viewer_html_textured,
+        gr.update(value=path, visible=True),
+        gr.update(value=path_textured, visible=True),
+        # model_viewer_html,
+        # model_viewer_html_textured,
     )
 
 @spaces.GPU(duration=30)
@@ -216,7 +218,8 @@ def shape_generation(
 
     return (
         gr.update(value=path, visible=True),
-        model_viewer_html,
+        gr.update(value=path, visible=True),
+        # model_viewer_html,
     )
 
 
@@ -280,9 +283,27 @@ def build_app():
             with gr.Column(scale=5):
                 with gr.Tabs():
                     with gr.Tab('Generated Mesh') as mesh1:
-                        html_output1 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
+                        mesh_output1 = LitModel3D(
+                            label="3D Model",
+                            exposure=10.0, # height=300,
+                            visible=False,
+                            clear_color=[0.0, 0.0, 0.0, 0.0],
+                            tonemapping="aces",
+                            contrast=1.0,
+                            scale=1.0,
+                        )
+                        # html_output1 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
                     with gr.Tab('Generated Textured Mesh') as mesh2:
-                        html_output2 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
+                        # html_output2 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
+                        mesh_output2 = LitModel3D(
+                            label="3D Model",
+                            exposure=10.0, # height=300,
+                            visible=False,
+                            clear_color=[0.0, 0.0, 0.0, 0.0],
+                            tonemapping="aces",
+                            contrast=1.0,
+                            scale=1.0,
+                        )
 
             with gr.Column(scale=2):
                 with gr.Tabs() as gallery:
@@ -310,7 +331,8 @@ def build_app():
                 octree_resolution,
                 check_box_rembg,
             ],
-            outputs=[file_out, html_output1]
+            # outputs=[file_out, html_output1]
+            outputs=[file_out, mesh_output1]
         ).then(
             lambda: gr.update(visible=True),
             outputs=[file_out],
@@ -327,7 +349,8 @@ def build_app():
                 octree_resolution,
                 check_box_rembg,
             ],
-            outputs=[file_out, file_out2, html_output1, html_output2]
+            # outputs=[file_out, file_out2, html_output1, html_output2]
+            outputs=[file_out, file_out2, mesh_output1, mesh_output2]
         ).then(
             lambda: (gr.update(visible=True), gr.update(visible=True)),
             outputs=[file_out, file_out2],
