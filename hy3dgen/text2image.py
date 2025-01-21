@@ -82,7 +82,7 @@ class HunyuanDiTPipeline:
         out_img = self.pipe(
             prompt=self.pos_txt+prompt,
             negative_prompt=self.neg_txt,
-            num_inference_steps=25,
+            num_inference_steps=20,
             pag_scale=1.3,
             width=1024,
             height=1024,

@@ -48,7 +48,7 @@ def get_example_txt_list():
     return txt_list
 
 
-def gen_save_folder(max_size=60):
+def gen_save_folder(max_size=600):
     os.makedirs(SAVE_DIR, exist_ok=True)
     exists = set(int(_) for _ in os.listdir(SAVE_DIR) if not _.startswith("."))
     cur_id = min(set(range(max_size)) - exists) if len(exists) < max_size else -1
@@ -152,8 +152,8 @@ def _gen_shape(
         octree_resolution=octree_resolution
     )[0]
 
-    mesh = FloaterRemover()(mesh)
-    mesh = DegenerateFaceRemover()(mesh)
+    # mesh = FloaterRemover()(mesh)
+    # mesh = DegenerateFaceRemover()(mesh)
     mesh = FaceReducer()(mesh)
 
     stats['number_of_faces'] = mesh.faces.shape[0]
@@ -164,7 +164,7 @@ def _gen_shape(
     stats['time'] = time_meta
     return mesh, save_folder
 
-@spaces.GPU(duration=120)
+@spaces.GPU(duration=90)
 def generation_all(
     caption,
     image,
@@ -412,5 +412,6 @@ if __name__ == '__main__':
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     demo = build_app()
+    demo.queue(max_size=3)
     app = gr.mount_gradio_app(app, demo, path="/")
     uvicorn.run(app, host="0.0.0.0", port=7860)
