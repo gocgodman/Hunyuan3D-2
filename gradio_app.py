@@ -1,5 +1,9 @@
 # pip install gradio==3.39.0
 import os
+
+os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/custom_rasterizer && pip install .")
+
 import shutil
 import time
 from glob import glob
@@ -346,8 +350,8 @@ if __name__ == '__main__':
 
     rmbg_worker = BackgroundRemover()
     # t2i_worker = HunyuanDiTPipeline('Tencent-Hunyuan--HunyuanDiT-v1.1-Diffusers-Distilled')
-    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained('Hunyuan3D-2')
-    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained('Hunyuan3D-2')
+    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained('tencent/Hunyuan3D-2')
+    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained('tencent/Hunyuan3D-2')
     floater_remove_worker = FloaterRemover()
     degenerate_face_remove_worker = DegenerateFaceRemover()
     face_reduce_worker = FaceReducer()
