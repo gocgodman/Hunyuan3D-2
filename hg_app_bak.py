@@ -1,5 +1,5 @@
+# pip install gradio==3.39.0
 import os
-import spaces
 import subprocess
 def install_cuda_toolkit():
     # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
@@ -21,19 +21,16 @@ def install_cuda_toolkit():
 install_cuda_toolkit()
 os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
 os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
+# os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
 
-import os
 import shutil
 import time
 from glob import glob
-from pathlib import Path
-
 import gradio as gr
 import torch
-import uvicorn
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
+from gradio_litmodel3d import LitModel3D
 
+import spaces
 
 def get_example_img_list():
     print('Loading example img list ...')
@@ -95,8 +92,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
     with open(output_html_path, 'w') as f:
         f.write(template_html.replace('<model-viewer>', obj_html))
 
-    output_html_path = output_html_path.replace(SAVE_DIR + '/', '')
-    iframe_tag = f'<iframe src="/static/{output_html_path}" height="{height}" width="100%" frameborder="0"></iframe>'
+    iframe_tag = f'<iframe src="file/{output_html_path}" height="{height}" width="100%" frameborder="0"></iframe>'
     print(f'Find html {output_html_path}, {os.path.exists(output_html_path)}')
 
     return f"""
@@ -105,7 +101,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-@spaces.GPU(duration=40)
+@spaces.GPU(duration=60)
 def _gen_shape(
     caption,
     image,
@@ -121,12 +117,10 @@ def _gen_shape(
     time_meta = {}
     start_time_0 = time.time()
 
+    image_path = ''
     if image is None:
         start_time = time.time()
-        try:
-            image = t2i_worker(caption)
-        except Exception as e:
-            raise gr.Error(f"Text to 3D is disable. Please enable it by `python gradio_app.py --enable_t23d`.")
+        image = t2i_worker(caption)
         time_meta['text2image'] = time.time() - start_time
 
     image.save(os.path.join(save_folder, 'input.png'))
@@ -164,7 +158,7 @@ def _gen_shape(
     stats['time'] = time_meta
     return mesh, save_folder
 
-@spaces.GPU(duration=60)
+@spaces.GPU(duration=80)
 def generation_all(
     caption,
     image,
@@ -193,11 +187,13 @@ def generation_all(
     return (
         gr.update(value=path, visible=True),
         gr.update(value=path_textured, visible=True),
-        model_viewer_html,
-        model_viewer_html_textured,
+        gr.update(value=path, visible=True),
+        gr.update(value=path_textured, visible=True),
+        # model_viewer_html,
+        # model_viewer_html_textured,
     )
 
-@spaces.GPU(duration=40)
+@spaces.GPU(duration=30)
 def shape_generation(
     caption,
     image,
@@ -222,28 +218,39 @@ def shape_generation(
 
     return (
         gr.update(value=path, visible=True),
-        model_viewer_html,
+        gr.update(value=path, visible=True),
+        # model_viewer_html,
     )
 
 
 def build_app():
     title_html = """
-    <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
-
+    <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 20px">
+    
     Hunyuan3D-2: Scaling Diffusion Models for High Resolution Textured 3D Assets Generation
     </div>
     <div align="center">
     Tencent Hunyuan3D Team
     </div>
     <div align="center">
-      <a href="https://github.com/tencent/Hunyuan3D-2">Github Page</a> &ensp; 
+      <a href="https://github.com/tencent/Hunyuan3D-1">Github Page</a> &ensp; 
       <a href="http://3d-models.hunyuan.tencent.com">Homepage</a> &ensp;
-      <a href="#">Technical Report</a> &ensp;
+      <a href="https://arxiv.org/pdf/2411.02293">Technical Report</a> &ensp;
       <a href="https://huggingface.co/Tencent/Hunyuan3D-2"> Models</a> &ensp;
     </div>
     """
+    css = """
+    .json-output {
+        height: 578px;
+    }
+    .json-output .json-holder {
+        height: 538px;
+        overflow-y: scroll;
+    }
+    """
 
-    with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0') as demo:
+    with gr.Blocks(theme=gr.themes.Base(), css=css, title='Hunyuan-3D-2.0') as demo:
+        # if not gr.__version__.startswith('4'): gr.HTML(title_html)
         gr.HTML(title_html)
 
         with gr.Row():
@@ -254,7 +261,7 @@ def build_app():
                         with gr.Row():
                             check_box_rembg = gr.Checkbox(value=True, label='Remove Background')
 
-                    with gr.Tab('Text Prompt', id='tab_txt_prompt', visible=HAS_T2I) as tab_tp:
+                    with gr.Tab('Text Prompt', id='tab_txt_prompt') as tab_tp:
                         caption = gr.Textbox(label='Text Prompt',
                                              placeholder='HunyuanDiT will be used to generate image.',
                                              info='Example: A 3D model of a cute cat, white background')
@@ -267,7 +274,7 @@ def build_app():
 
                 with gr.Group():
                     btn = gr.Button(value='Generate Shape Only', variant='primary')
-                    btn_all = gr.Button(value='Generate Shape and Texture', variant='primary', visible=HAS_TEXTUREGEN)
+                    btn_all = gr.Button(value='Generate Shape and Texture', variant='primary')
 
                 with gr.Group():
                     file_out = gr.File(label="File", visible=False)
@@ -276,9 +283,29 @@ def build_app():
             with gr.Column(scale=5):
                 with gr.Tabs():
                     with gr.Tab('Generated Mesh') as mesh1:
-                        html_output1 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
+                        mesh_output1 = LitModel3D(
+                            label="3D Model1",
+                            exposure=10.0,
+                            height=600,
+                            visible=True,
+                            clear_color=[0.0, 0.0, 0.0, 0.0],
+                            tonemapping="aces",
+                            contrast=1.0,
+                            scale=1.0,
+                        )
+                        # html_output1 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
                     with gr.Tab('Generated Textured Mesh') as mesh2:
-                        html_output2 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
+                        # html_output2 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
+                        mesh_output2 = LitModel3D(
+                            label="3D Model2",
+                            exposure=10.0,
+                            height=600,
+                            visible=True,
+                            clear_color=[0.0, 0.0, 0.0, 0.0],
+                            tonemapping="aces",
+                            contrast=1.0,
+                            scale=1.0,
+                        )
 
             with gr.Column(scale=2):
                 with gr.Tabs() as gallery:
@@ -287,30 +314,13 @@ def build_app():
                             gr.Examples(examples=example_is, inputs=[image],
                                         label="Image Prompts", examples_per_page=18)
 
-                    with gr.Tab('Text to 3D Gallery', id='tab_txt_gallery', visible=HAS_T2I) as tab_gt:
+                    with gr.Tab('Text to 3D Gallery', id='tab_txt_gallery') as tab_gt:
                         with gr.Row():
                             gr.Examples(examples=example_ts, inputs=[caption],
                                         label="Text Prompts", examples_per_page=18)
 
-        if not HAS_TEXTUREGEN:
-            gr.HTML(""")
-            <div style="margin-top: 20px;">
-                <b>Warning: </b>
-                Texture synthesis is disable due to missing requirements,
-                 please install requirements following README.md to activate it.
-            </div>
-            """)
-        if not args.enable_t23d:
-            gr.HTML("""
-            <div style="margin-top: 20px;">
-                <b>Warning: </b>
-                Text to 3D is disable. To activate it, please run `python gradio_app.py --enable_t23d`.
-            </div>
-            """)
-
         tab_gi.select(fn=lambda: gr.update(selected='tab_img_prompt'), outputs=tabs_prompt)
-        if HAS_T2I:
-            tab_gt.select(fn=lambda: gr.update(selected='tab_txt_prompt'), outputs=tabs_prompt)
+        tab_gt.select(fn=lambda: gr.update(selected='tab_txt_prompt'), outputs=tabs_prompt)
 
         btn.click(
             shape_generation,
@@ -323,7 +333,8 @@ def build_app():
                 octree_resolution,
                 check_box_rembg,
             ],
-            outputs=[file_out, html_output1]
+            # outputs=[file_out, html_output1]
+            outputs=[file_out, mesh_output1]
         ).then(
             lambda: gr.update(visible=True),
             outputs=[file_out],
@@ -340,7 +351,8 @@ def build_app():
                 octree_resolution,
                 check_box_rembg,
             ],
-            outputs=[file_out, file_out2, html_output1, html_output2]
+            # outputs=[file_out, file_out2, html_output1, html_output2]
+            outputs=[file_out, file_out2, mesh_output1, mesh_output2]
         ).then(
             lambda: (gr.update(visible=True), gr.update(visible=True)),
             outputs=[file_out, file_out2],
@@ -354,8 +366,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8080)
-    parser.add_argument('--cache-path', type=str, default='gradio_cache')
-    parser.add_argument('--enable_t23d', default=True)
+    parser.add_argument('--cache-path', type=str, default='./gradio_cache')
     args = parser.parse_args()
 
     SAVE_DIR = args.cache_path
@@ -375,42 +386,19 @@ if __name__ == '__main__':
     example_is = get_example_img_list()
     example_ts = get_example_txt_list()
 
-    try:
-        from hy3dgen.texgen import Hunyuan3DPaintPipeline
-
-        texgen_worker = Hunyuan3DPaintPipeline.from_pretrained('tencent/Hunyuan3D-2')
-        HAS_TEXTUREGEN = True
-    except Exception as e:
-        print(e)
-        print("Failed to load texture generator.")
-        print('Please try to install requirements by following README.md')
-        HAS_TEXTUREGEN = False
-
-    HAS_T2I = False
-    if args.enable_t23d:
-        from hy3dgen.text2image import HunyuanDiTPipeline
-
-        t2i_worker = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled')
-        HAS_T2I = True
-
+    from hy3dgen.text2image import HunyuanDiTPipeline
     from hy3dgen.shapegen import FaceReducer, FloaterRemover, DegenerateFaceRemover, \
         Hunyuan3DDiTFlowMatchingPipeline
+    from hy3dgen.texgen import Hunyuan3DPaintPipeline
     from hy3dgen.rembg import BackgroundRemover
 
     rmbg_worker = BackgroundRemover()
+    t2i_worker = HunyuanDiTPipeline()
     i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained('tencent/Hunyuan3D-2')
+    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained('tencent/Hunyuan3D-2')
     floater_remove_worker = FloaterRemover()
     degenerate_face_remove_worker = DegenerateFaceRemover()
     face_reduce_worker = FaceReducer()
 
-    # https://discuss.huggingface.co/t/how-to-serve-an-html-file/33921/2
-    # create a FastAPI app
-    app = FastAPI()
-    # create a static directory to store the static files
-    static_dir = Path('./gradio_cache')
-    static_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
     demo = build_app()
-    app = gr.mount_gradio_app(app, demo, path="/")
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    demo.queue().launch()
