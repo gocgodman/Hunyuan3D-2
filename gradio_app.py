@@ -18,7 +18,7 @@ def install_cuda_toolkit():
     # Fix: arch_list[-1] += '+PTX'; IndexError: list index out of range
     os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
 
-# install_cuda_toolkit()
+install_cuda_toolkit()
 os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
 os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
 os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
