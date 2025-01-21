@@ -7,6 +7,8 @@ from glob import glob
 import gradio as gr
 import torch
 
+import spaces
+
 
 def get_example_img_list():
     print('Loading example img list ...')
@@ -77,7 +79,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-
+@spaces.GPU()
 def _gen_shape(
     caption,
     image,
@@ -134,7 +136,7 @@ def _gen_shape(
     stats['time'] = time_meta
     return mesh, save_folder
 
-
+@spaces.GPU()
 def generation_all(
     caption,
     image,
@@ -167,7 +169,7 @@ def generation_all(
         model_viewer_html_textured,
     )
 
-
+@spaces.GPU()
 def shape_generation(
     caption,
     image,
@@ -351,8 +353,4 @@ if __name__ == '__main__':
     face_reduce_worker = FaceReducer()
 
     demo = build_app()
-    demo.queue().launch(
-        server_name='0.0.0.0',
-        server_port=args.port,
-        allowed_paths=[SAVE_DIR],
-    )
+    demo.queue().launch()

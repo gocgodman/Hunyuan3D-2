@@ -215,8 +215,7 @@ class Hunyuan3DDiTPipeline:
                 try:
                     import huggingface_hub
                     path = huggingface_hub.snapshot_download(
-                        repo_id="tencent/Hunyuan3D-2", 
-                        local_dir=base_dir, 
+                        repo_id=original_model_path, 
                         resume_download=True
                     )
                     model_path = os.path.join(path, 'hunyuan3d-dit-v2-0')

@@ -1,3 +1,15 @@
+---
+title: Hunyuan3D-2.0
+emoji: 😻
+colorFrom: purple
+colorTo: red
+sdk: gradio
+sdk_version: 3.39.0
+app_file: app_hg.py
+pinned: false
+short_description: Text-to-3D and Image-to-3D Generation
+---
+
 [中文阅读](README_zh_cn.md)
 
 <p align="center">

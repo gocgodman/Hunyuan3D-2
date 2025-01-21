@@ -71,8 +71,7 @@ class Hunyuan3DPaintPipeline:
                 try:
                     import huggingface_hub
                     path = huggingface_hub.snapshot_download(
-                        repo_id="tencent/Hunyuan3D-2", 
-                        local_dir=base_dir, 
+                        repo_id=original_model_path, 
                         resume_download=True
                     )
                     delight_model_path = os.path.join(model_path, 'hunyuan3d-delight-v2-0')
