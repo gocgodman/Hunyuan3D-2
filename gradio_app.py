@@ -284,9 +284,10 @@ def build_app():
                 with gr.Tabs():
                     with gr.Tab('Generated Mesh') as mesh1:
                         mesh_output1 = LitModel3D(
-                            label="3D Model",
-                            exposure=10.0, # height=300,
-                            visible=False,
+                            label="3D Model1",
+                            exposure=10.0,
+                            height=600,
+                            visible=True,
                             clear_color=[0.0, 0.0, 0.0, 0.0],
                             tonemapping="aces",
                             contrast=1.0,
@@ -296,9 +297,10 @@ def build_app():
                     with gr.Tab('Generated Textured Mesh') as mesh2:
                         # html_output2 = gr.HTML(HTML_OUTPUT_PLACEHOLDER, label='Output')
                         mesh_output2 = LitModel3D(
-                            label="3D Model",
-                            exposure=10.0, # height=300,
-                            visible=False,
+                            label="3D Model2",
+                            exposure=10.0,
+                            height=600,
+                            visible=True,
                             clear_color=[0.0, 0.0, 0.0, 0.0],
                             tonemapping="aces",
                             contrast=1.0,
