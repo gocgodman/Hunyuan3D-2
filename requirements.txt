@@ -1,3 +1,4 @@
+gradio_litmodel3d
 ninja
 pybind11
 trimesh
