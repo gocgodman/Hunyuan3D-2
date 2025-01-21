@@ -80,7 +80,7 @@ class HunyuanDiTPipeline:
         generator = torch.Generator(device=self.pipe.device)
         generator = generator.manual_seed(int(seed))
         out_img = self.pipe(
-            prompt=prompt[:60]+self.pos_txt,
+            prompt=self.pos_txt+prompt,
             negative_prompt=self.neg_txt,
             num_inference_steps=25,
             pag_scale=1.3,
