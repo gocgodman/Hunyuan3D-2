@@ -250,8 +250,8 @@ def build_app():
     """
 
     with gr.Blocks(theme=gr.themes.Base(), css=css, title='Hunyuan-3D-2.0') as demo:
-        if not gr.__version__.startswith('4'):
-            gr.HTML(title_html)
+        # if not gr.__version__.startswith('4'): gr.HTML(title_html)
+        gr.HTML(title_html)
 
         with gr.Row():
             with gr.Column(scale=2):
@@ -392,7 +392,7 @@ if __name__ == '__main__':
     from hy3dgen.rembg import BackgroundRemover
 
     rmbg_worker = BackgroundRemover()
-    # t2i_worker = HunyuanDiTPipeline('Tencent-Hunyuan--HunyuanDiT-v1.1-Diffusers-Distilled')
+    t2i_worker = HunyuanDiTPipeline('Tencent-Hunyuan--HunyuanDiT-v1.1-Diffusers-Distilled')
     i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained('tencent/Hunyuan3D-2')
     texgen_worker = Hunyuan3DPaintPipeline.from_pretrained('tencent/Hunyuan3D-2')
     floater_remove_worker = FloaterRemover()
