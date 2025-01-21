@@ -74,8 +74,8 @@ class Hunyuan3DPaintPipeline:
                         repo_id=original_model_path, 
                         resume_download=True
                     )
-                    delight_model_path = os.path.join(model_path, 'hunyuan3d-delight-v2-0')
-                    multiview_model_path = os.path.join(model_path, 'hunyuan3d-paint-v2-0')
+                    delight_model_path = os.path.join(path, 'hunyuan3d-delight-v2-0')
+                    multiview_model_path = os.path.join(path, 'hunyuan3d-paint-v2-0')
                     return cls(Hunyuan3DTexGenConfig(delight_model_path, multiview_model_path))
                 except ImportError:
                     logger.warning(
