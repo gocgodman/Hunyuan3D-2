@@ -5,7 +5,7 @@ colorFrom: purple
 colorTo: red
 sdk: gradio
 sdk_version: 5.12.0
-app_file: app_hg.py
+app_file: gradio_app.py
 pinned: false
 short_description: Text-to-3D and Image-to-3D Generation
 ---
