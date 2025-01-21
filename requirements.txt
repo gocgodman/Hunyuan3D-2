@@ -1,3 +1,4 @@
+/home/user/app/hy3dgen/texgen/custom_rasterizer
 ninja
 pybind11
 trimesh
