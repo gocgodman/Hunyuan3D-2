@@ -50,7 +50,7 @@ def get_example_txt_list():
     return txt_list
 
 
-def gen_save_folder(max_size=600):
+def gen_save_folder(max_size=60):
     os.makedirs(SAVE_DIR, exist_ok=True)
     exists = set(int(_) for _ in os.listdir(SAVE_DIR) if not _.startswith("."))
     cur_id = min(set(range(max_size)) - exists) if len(exists) < max_size else -1
