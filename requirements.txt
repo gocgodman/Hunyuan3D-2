@@ -32,5 +32,5 @@ pygltflib
 sentencepiece
 gradio
 uvicorn
-fastapi
+fastapi==0.112.2
 wheel
