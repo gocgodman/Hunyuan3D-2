@@ -1,5 +1,5 @@
 # pip install gradio==4.44.1
-if False:
+if True:
     import os
     import spaces
     import subprocess
@@ -137,12 +137,12 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         f.write(template_html.replace('<model-viewer>', obj_html))
 
     output_html_path = output_html_path.replace(SAVE_DIR + '/', '')
-    #iframe_tag = f'<iframe src="/static/{output_html_path}" height="{height}" width="100%" frameborder="0"></iframe>'
-    # print(f'Find html {output_html_path}, {os.path.exists(output_html_path)}')
+    iframe_tag = f'<iframe src="/static/{output_html_path}" height="{height}" width="100%" frameborder="0"></iframe>'
+    print(f'Find html {output_html_path}, {os.path.exists(output_html_path)}')
 
-    rel_path = os.path.relpath(output_html_path, SAVE_DIR)
-    iframe_tag = f'<iframe src="/static/{rel_path}" height="{height}" width="100%" frameborder="0"></iframe>'
-    print(f'Find html file {output_html_path}, {os.path.exists(output_html_path)}, relative HTML path is /static/{rel_path}')
+    # rel_path = os.path.relpath(output_html_path, SAVE_DIR)
+    # iframe_tag = f'<iframe src="/static/{rel_path}" height="{height}" width="100%" frameborder="0"></iframe>'
+    # print(f'Find html file {output_html_path}, {os.path.exists(output_html_path)}, relative HTML path is /static/{rel_path}')
 
     return f"""
         <div style='height: {height}; width: 100%;'>
@@ -207,7 +207,7 @@ def _gen_shape(
     time_meta['image_to_textured_3d'] = {'total': time.time() - start_time}
     time_meta['total'] = time.time() - start_time_0
     stats['time'] = time_meta
-    return mesh, save_folder
+    return mesh, save_folder, image
 
 @spaces.GPU(duration=90)
 def generation_all(
@@ -219,7 +219,7 @@ def generation_all(
     octree_resolution=256,
     check_box_rembg=False
 ):
-    mesh, save_folder = _gen_shape(
+    mesh, save_folder, image = _gen_shape(
         caption,
         image,
         steps=steps,
@@ -252,7 +252,7 @@ def shape_generation(
     octree_resolution=256,
     check_box_rembg=False,
 ):
-    mesh, save_folder = _gen_shape(
+    mesh, save_folder, image = _gen_shape(
         caption,
         image,
         steps=steps,
