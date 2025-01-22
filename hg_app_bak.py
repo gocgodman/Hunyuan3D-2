@@ -154,7 +154,7 @@ def _gen_shape(
     time_meta['image_to_textured_3d'] = {'total': time.time() - start_time}
     time_meta['total'] = time.time() - start_time_0
     stats['time'] = time_meta
-    return mesh, save_folder
+    return mesh, save_folder, image
 
 @spaces.GPU(duration=80)
 def generation_all(
@@ -166,7 +166,7 @@ def generation_all(
     octree_resolution=256,
     check_box_rembg=False
 ):
-    mesh, save_folder = _gen_shape(
+    mesh, save_folder, image = _gen_shape(
         caption,
         image,
         steps=steps,
@@ -201,7 +201,7 @@ def shape_generation(
     octree_resolution=256,
     check_box_rembg=False,
 ):
-    mesh, save_folder = _gen_shape(
+    mesh, save_folder, image = _gen_shape(
         caption,
         image,
         steps=steps,
