@@ -4,7 +4,7 @@ if True:
     import spaces
     import subprocess
     import sys
-
+    import shlex
 
     def install_package(package_path):
         # 确保 package_path 是绝对路径
@@ -46,7 +46,8 @@ if True:
     # print("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
     # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
     print('install custom')
-    install_package("/home/user/app/hy3dgen/texgen/custom_rasterizer")
+    # install_package("/home/user/app/hy3dgen/texgen/custom_rasterizer")
+    subprocess.run(shlex.split("pip install . --no-build-isolation"), cwd="/home/user/app/hy3dgen/texgen/custom_rasterizer/", check=True)
     # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
     
     IP = "0.0.0.0"
