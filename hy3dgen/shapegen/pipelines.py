@@ -445,7 +445,7 @@ class Hunyuan3DDiTPipeline:
                 latent_model_input = torch.cat([latents] * (3 if dual_guidance else 2))
             else:
                 latent_model_input = latents
-            latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
+            latent_model_input = scheduler.scale_model_input(latent_model_input, t)
 
             # predict the noise residual
             timestep_tensor = torch.tensor([t], dtype=t_dtype, device=device)
@@ -466,11 +466,11 @@ class Hunyuan3DDiTPipeline:
                     noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
 
             # compute the previous noisy sample x_t -> x_t-1
-            outputs = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs)
+            outputs = scheduler.step(noise_pred, t, latents, **extra_step_kwargs)
             latents = outputs.prev_sample
 
             if callback is not None and i % callback_steps == 0:
-                step_idx = i // getattr(self.scheduler, "order", 1)
+                step_idx = i // getattr(scheduler, "order", 1)
                 callback(step_idx, t, outputs)
 
         return self._export(
@@ -543,8 +543,9 @@ class Hunyuan3DDiTFlowMatchingPipeline(Hunyuan3DDiTPipeline):
         # 5. Prepare timesteps
         # NOTE: this is slightly different from common usage, we start from 0.
         sigmas = np.linspace(0, 1, num_inference_steps) if sigmas is None else sigmas
+        scheduler = instantiate_from_config(self.kwargs['scheduler_cfg'])
         timesteps, num_inference_steps = retrieve_timesteps(
-            self.scheduler,
+            scheduler,
             num_inference_steps,
             device,
             sigmas=sigmas,
@@ -565,7 +566,7 @@ class Hunyuan3DDiTFlowMatchingPipeline(Hunyuan3DDiTPipeline):
 
             # NOTE: we assume model get timesteps ranged from 0 to 1
             timestep = t.expand(latent_model_input.shape[0]).to(
-                latents.dtype) / self.scheduler.config.num_train_timesteps
+                latents.dtype) / scheduler.config.num_train_timesteps
             noise_pred = self.model(latent_model_input, timestep, cond, guidance=guidance)
 
             if do_classifier_free_guidance:
@@ -573,11 +574,11 @@ class Hunyuan3DDiTFlowMatchingPipeline(Hunyuan3DDiTPipeline):
                 noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_cond - noise_pred_uncond)
 
             # compute the previous noisy sample x_t -> x_t-1
-            outputs = self.scheduler.step(noise_pred, t, latents)
+            outputs = scheduler.step(noise_pred, t, latents)
             latents = outputs.prev_sample
 
             if callback is not None and i % callback_steps == 0:
-                step_idx = i // getattr(self.scheduler, "order", 1)
+                step_idx = i // getattr(scheduler, "order", 1)
                 callback(step_idx, t, outputs)
 
         return self._export(
