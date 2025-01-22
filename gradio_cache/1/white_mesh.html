@@ -3,8 +3,7 @@
 
 <head>
     <!-- Import the component -->
-    <!--<script src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.1.1/model-viewer.min.js" type="module"></script> -->
-    <script src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.1.1/dist/model-viewer.min.js" type="module"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.1.1/model-viewer.min.js" type="module"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -43,7 +42,15 @@
 
 <body>
 <div class="centered-container">
-    <model-viewer>
+    
+            <div class="column is-mobile is-centered">
+                <model-viewer style="height: 586px; width: 700px;" rotation-per-second="10deg" id="modelViewer"
+                    src="./white_mesh.glb/" disable-tap 
+                    environment-image="neutral" auto-rotate camera-target="0m 0m 0m" orientation="0deg 0deg 170deg" shadow-intensity=".9"
+                    ar auto-rotate camera-controls>
+                </model-viewer>
+            </div>
+            
 </div>
 </body>
 

@@ -1,51 +1,39 @@
-# pip install gradio==4.44.1
-if True:
-    import os
-    import spaces
-    import subprocess
-    import sys
-    import shlex
+import os
+import spaces
+import subprocess
+def install_cuda_toolkit():
+    # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
+    CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_535.54.03_linux.run"
+    CUDA_TOOLKIT_FILE = "/tmp/%s" % os.path.basename(CUDA_TOOLKIT_URL)
+    subprocess.call(["wget", "-q", CUDA_TOOLKIT_URL, "-O", CUDA_TOOLKIT_FILE])
+    subprocess.call(["chmod", "+x", CUDA_TOOLKIT_FILE])
+    subprocess.call([CUDA_TOOLKIT_FILE, "--silent", "--toolkit"])
 
-    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    print('install custom')
-    subprocess.run(shlex.split("pip install custom_rasterizer-0.1-cp310-cp310-linux_x86_64.whl"), check=True)    
-    
-    IP = "0.0.0.0"
-    PORT = 7860
+    os.environ["CUDA_HOME"] = "/usr/local/cuda"
+    os.environ["PATH"] = "%s/bin:%s" % (os.environ["CUDA_HOME"], os.environ["PATH"])
+    os.environ["LD_LIBRARY_PATH"] = "%s/lib:%s" % (
+        os.environ["CUDA_HOME"],
+        "" if "LD_LIBRARY_PATH" not in os.environ else os.environ["LD_LIBRARY_PATH"],
+    )
+    # Fix: arch_list[-1] += '+PTX'; IndexError: list index out of range
+    os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
 
-else:
-    IP = "0.0.0.0"
-    PORT = 8080
-    class spaces:
-        class GPU:
-            def __init__(self, duration=60):
-                self.duration = duration
-            def __call__(self, func):
-                return func 
+install_cuda_toolkit()
+os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
 
 import os
 import shutil
 import time
 from glob import glob
 from pathlib import Path
-from PIL import Image
-from datetime import datetime
-import uuid
+
 import gradio as gr
 import torch
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-
-def start_session(req: gr.Request):
-    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
-    os.makedirs(save_folder, exist_ok=True)
-        
-def end_session(req: gr.Request):
-    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
-    shutil.rmtree(save_folder)
 
 def get_example_img_list():
     print('Loading example img list ...')
@@ -60,6 +48,19 @@ def get_example_txt_list():
     return txt_list
 
 
+def gen_save_folder(max_size=60):
+    os.makedirs(SAVE_DIR, exist_ok=True)
+    exists = set(int(_) for _ in os.listdir(SAVE_DIR) if not _.startswith("."))
+    cur_id = min(set(range(max_size)) - exists) if len(exists) < max_size else -1
+    if os.path.exists(f"{SAVE_DIR}/{(cur_id + 1) % max_size}"):
+        shutil.rmtree(f"{SAVE_DIR}/{(cur_id + 1) % max_size}")
+        print(f"remove {SAVE_DIR}/{(cur_id + 1) % max_size} success !!!")
+    save_folder = f"{SAVE_DIR}/{max(0, cur_id)}"
+    os.makedirs(save_folder, exist_ok=True)
+    print(f"mkdir {save_folder} suceess !!!")
+    return save_folder
+
+
 def export_mesh(mesh, save_folder, textured=False):
     if textured:
         path = os.path.join(save_folder, f'textured_mesh.glb')
@@ -68,15 +69,16 @@ def export_mesh(mesh, save_folder, textured=False):
     mesh.export(path, include_normals=textured)
     return path
 
+
 def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
     if textured:
         related_path = f"./textured_mesh.glb"
         template_name = './assets/modelviewer-textured-template.html'
-        output_html_path = os.path.join(save_folder, f'{uuid.uuid4()}_textured_mesh.html')
+        output_html_path = os.path.join(save_folder, f'textured_mesh.html')
     else:
         related_path = f"./white_mesh.glb"
         template_name = './assets/modelviewer-template.html'
-        output_html_path = os.path.join(save_folder, f'{uuid.uuid4()}_white_mesh.html')
+        output_html_path = os.path.join(save_folder, f'white_mesh.html')
 
     with open(os.path.join(CURRENT_DIR, template_name), 'r') as f:
         template_html = f.read()
@@ -97,32 +99,24 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
     iframe_tag = f'<iframe src="/static/{output_html_path}" height="{height}" width="100%" frameborder="0"></iframe>'
     print(f'Find html {output_html_path}, {os.path.exists(output_html_path)}')
 
-    # rel_path = os.path.relpath(output_html_path, SAVE_DIR)
-    # iframe_tag = f'<iframe src="/static/{rel_path}" height="{height}" width="100%" frameborder="0"></iframe>'
-    # print(f'Find html file {output_html_path}, {os.path.exists(output_html_path)}, relative HTML path is /static/{rel_path}')
-
     return f"""
         <div style='height: {height}; width: 100%;'>
         {iframe_tag}
         </div>
     """
 
-
-@spaces.GPU(duration=100)
+@spaces.GPU(duration=40)
 def _gen_shape(
-    caption: str,
-    image: Image.Image,
-    steps: int,
-    guidance_scale: float,
-    seed: int,
-    octree_resolution: int,
-    check_box_rembg: bool,
-    req: gr.Request,
+    caption,
+    image,
+    steps=50,
+    guidance_scale=7.5,
+    seed=1234,
+    octree_resolution=256,
+    check_box_rembg=False,
 ):
     if caption: print('prompt is', caption)
-    save_folder = os.path.join(SAVE_DIR, str(req.session_hash)) 
-    os.makedirs(save_folder, exist_ok=True)
-
+    save_folder = gen_save_folder()
     stats = {}
     time_meta = {}
     start_time_0 = time.time()
@@ -137,7 +131,7 @@ def _gen_shape(
 
     image.save(os.path.join(save_folder, 'input.png'))
 
-    print(f"[{datetime.now()}][HunYuan3D-2]]", str(req.session_hash), image.mode)
+    print(image.mode)
     if check_box_rembg or image.mode == "RGB":
         start_time = time.time()
         image = rmbg_worker(image.convert('RGB'))
@@ -168,30 +162,26 @@ def _gen_shape(
     time_meta['image_to_textured_3d'] = {'total': time.time() - start_time}
     time_meta['total'] = time.time() - start_time_0
     stats['time'] = time_meta
-    
-    torch.cuda.empty_cache()
-    return mesh, save_folder, image
+    return mesh, save_folder
 
-@spaces.GPU(duration=150)
+@spaces.GPU(duration=60)
 def generation_all(
-    caption: str,
-    image: Image.Image,
-    steps: int,
-    guidance_scale: float,
-    seed: int,
-    octree_resolution: int,
-    check_box_rembg: bool,
-    req: gr.Request,
+    caption,
+    image,
+    steps=50,
+    guidance_scale=7.5,
+    seed=1234,
+    octree_resolution=256,
+    check_box_rembg=False
 ):
-    mesh, save_folder, image = _gen_shape(
+    mesh, save_folder = _gen_shape(
         caption,
         image,
         steps=steps,
         guidance_scale=guidance_scale,
         seed=seed,
         octree_resolution=octree_resolution,
-        check_box_rembg=check_box_rembg,
-        req=req
+        check_box_rembg=check_box_rembg
     )
     path = export_mesh(mesh, save_folder, textured=False)
     model_viewer_html = build_model_viewer_html(save_folder, height=596, width=700)
@@ -200,41 +190,38 @@ def generation_all(
     path_textured = export_mesh(textured_mesh, save_folder, textured=True)
     model_viewer_html_textured = build_model_viewer_html(save_folder, height=596, width=700, textured=True)
 
-    torch.cuda.empty_cache()
     return (
-        path,
-        path_textured, 
+        gr.update(value=path, visible=True),
+        gr.update(value=path_textured, visible=True),
         model_viewer_html,
         model_viewer_html_textured,
     )
 
-@spaces.GPU(duration=100)
+@spaces.GPU(duration=40)
 def shape_generation(
-    caption: str,
-    image: Image.Image,
-    steps: int,
-    guidance_scale: float,
-    seed: int,
-    octree_resolution: int,
-    check_box_rembg: bool,
-    req: gr.Request,
+    caption,
+    image,
+    steps=50,
+    guidance_scale=7.5,
+    seed=1234,
+    octree_resolution=256,
+    check_box_rembg=False,
 ):
-    mesh, save_folder, image = _gen_shape(
+    mesh, save_folder = _gen_shape(
         caption,
         image,
         steps=steps,
         guidance_scale=guidance_scale,
         seed=seed,
         octree_resolution=octree_resolution,
-        check_box_rembg=check_box_rembg,
-        req=req,
+        check_box_rembg=check_box_rembg
     )
 
     path = export_mesh(mesh, save_folder, textured=False)
     model_viewer_html = build_model_viewer_html(save_folder, height=596, width=700)
 
     return (
-        path,
+        gr.update(value=path, visible=True),
         model_viewer_html,
     )
 
@@ -256,7 +243,7 @@ def build_app():
     </div>
     """
 
-    with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0', delete_cache=(1000,1000)) as demo:
+    with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0') as demo:
         gr.HTML(title_html)
 
         with gr.Row():
@@ -273,7 +260,7 @@ def build_app():
                                              info='Example: A 3D model of a cute cat, white background')
 
                 with gr.Accordion('Advanced Options', open=False):
-                    num_steps = gr.Slider(maximum=50, minimum=20, value=50, step=1, label='Inference Steps')
+                    num_steps = gr.Slider(maximum=50, minimum=20, value=30, step=1, label='Inference Steps')
                     octree_resolution = gr.Dropdown([256, 384, 512], value=256, label='Octree Resolution')
                     cfg_scale = gr.Number(value=5.5, label='Guidance Scale')
                     seed = gr.Slider(maximum=1e7, minimum=0, value=1234, label='Seed')
@@ -282,13 +269,9 @@ def build_app():
                     btn = gr.Button(value='Generate Shape Only', variant='primary')
                     btn_all = gr.Button(value='Generate Shape and Texture', variant='primary', visible=HAS_TEXTUREGEN)
 
-                # with gr.Group():
-                #     file_out = gr.File(label="File", visible=False)
-                #     file_out2 = gr.File(label="File", visible=False)
-
                 with gr.Group():
-                    file_out = gr.DownloadButton(label="Download White Mesh", interactive=False)
-                    file_out2 = gr.DownloadButton(label="Download Textured Mesh", interactive=False)  
+                    file_out = gr.File(label="File", visible=False)
+                    file_out2 = gr.File(label="File", visible=False)
 
             with gr.Column(scale=5):
                 with gr.Tabs():
@@ -310,7 +293,7 @@ def build_app():
                                         label="Text Prompts", examples_per_page=18)
 
         if not HAS_TEXTUREGEN:
-            gr.HTML("""
+            gr.HTML(""")
             <div style="margin-top: 20px;">
                 <b>Warning: </b>
                 Texture synthesis is disable due to missing requirements,
@@ -342,7 +325,7 @@ def build_app():
             ],
             outputs=[file_out, html_output1]
         ).then(
-            lambda: gr.Button(interactive=True),
+            lambda: gr.update(visible=True),
             outputs=[file_out],
         )
 
@@ -359,12 +342,9 @@ def build_app():
             ],
             outputs=[file_out, file_out2, html_output1, html_output2]
         ).then(
-            lambda: (gr.Button(interactive=True),gr.Button(interactive=True)),
+            lambda: (gr.update(visible=True), gr.update(visible=True)),
             outputs=[file_out, file_out2],
         )
-
-        # demo.load(start_session)
-        # demo.unload(end_session)
 
     return demo
 
@@ -378,9 +358,10 @@ if __name__ == '__main__':
     parser.add_argument('--enable_t23d', default=True)
     args = parser.parse_args()
 
-    CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-    SAVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.cache_path)
+    SAVE_DIR = args.cache_path
     os.makedirs(SAVE_DIR, exist_ok=True)
+
+    CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
     HTML_OUTPUT_PLACEHOLDER = """
     <div style='height: 596px; width: 100%; border-radius: 8px; border-color: #e5e7eb; order-style: solid; border-width: 1px;'></div>
@@ -431,6 +412,5 @@ if __name__ == '__main__':
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     demo = build_app()
-    demo.queue(max_size=10)
     app = gr.mount_gradio_app(app, demo, path="/")
-    uvicorn.run(app, host=IP, port=PORT)
+    uvicorn.run(app, host="0.0.0.0", port=7860)
