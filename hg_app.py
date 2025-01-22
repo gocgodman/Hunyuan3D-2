@@ -3,6 +3,18 @@ if True:
     import os
     import spaces
     import subprocess
+
+    def install_package(package_path):
+        # 确保 package_path 是绝对路径
+        package_path = os.path.abspath(package_path)
+        
+        # 使用 subprocess 调用 setup.py
+        try:
+            subprocess.check_call([sys.executable, os.path.join(package_path, 'setup.py'), 'install'])
+            print(f"Package installed from {package_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to install package from {package_path}: {e}")
+
     def install_cuda_toolkit():
         # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
         CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_535.54.03_linux.run"
@@ -21,8 +33,19 @@ if True:
         os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
     
     # install_cuda_toolkit()
+    print('which python')
+    os.system('which python')
+    print('which python3')
+    os.system('which python3')
+    print('which pip')
+    os.system('which pip')
+    print('which pip3')
+    os.system('which pip3')
+    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
     os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
+    # print("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
+    # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
+    install_package("/home/user/app/hy3dgen/texgen/custom_rasterizer")
     # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
     
     IP = "0.0.0.0"
