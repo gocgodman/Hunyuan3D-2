@@ -120,7 +120,9 @@ def _gen_shape(
     req: gr.Request,
 ):
     if caption: print('prompt is', caption)
-    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
+    save_folder = os.path.join(SAVE_DIR, str(req.session_hash)) 
+    os.makedirs(save_folder, exist_ok=True)
+
     stats = {}
     time_meta = {}
     start_time_0 = time.time()
