@@ -363,8 +363,8 @@ def build_app():
             outputs=[file_out, file_out2],
         )
 
-        demo.load(start_session)
-        demo.unload(end_session)
+        # demo.load(start_session)
+        # demo.unload(end_session)
 
     return demo
 
