@@ -41,3 +41,4 @@ assets/images/teaser.jpg filter=lfs diff=lfs merge=lfs -text
 gradio_cache/0/textured_mesh.glb filter=lfs diff=lfs merge=lfs -text
 gradio_cache/3/textured_mesh.glb filter=lfs diff=lfs merge=lfs -text
 gradio_cache/4/textured_mesh.glb filter=lfs diff=lfs merge=lfs -text
+gradio_cache/5/textured_mesh.glb filter=lfs diff=lfs merge=lfs -text

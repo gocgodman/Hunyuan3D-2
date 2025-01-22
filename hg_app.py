@@ -6,49 +6,10 @@ if True:
     import sys
     import shlex
 
-    def install_package(package_path):
-        # 确保 package_path 是绝对路径
-        package_path = os.path.abspath(package_path)
-    
-        # 设置环境变量
-        env = os.environ.copy()  # 复制当前环境变量
-        env['CUDA_HOME'] = '/usr/local/cuda'
-        env['FORCE_CUDA'] = '1'
-        env['TORCH_CUDA_ARCH_LIST'] = '8.0;8.6;8.9;9.0'
-    
-        # 使用 subprocess 调用 setup.py
-        try:
-            subprocess.check_call([sys.executable, os.path.join(package_path, 'setup.py'), 'install'], env=env)
-            print(f"Package installed from {package_path}")
-        except subprocess.CalledProcessError as e:
-            print(f"Failed to install package from {package_path}: {e}")
-    
-    def install_cuda_toolkit():
-        # CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/11.8.0/local_installers/cuda_11.8.0_520.61.05_linux.run"
-        CUDA_TOOLKIT_URL = "https://developer.download.nvidia.com/compute/cuda/12.2.0/local_installers/cuda_12.2.0_535.54.03_linux.run"
-        CUDA_TOOLKIT_FILE = "/tmp/%s" % os.path.basename(CUDA_TOOLKIT_URL)
-        subprocess.call(["wget", "-q", CUDA_TOOLKIT_URL, "-O", CUDA_TOOLKIT_FILE])
-        subprocess.call(["chmod", "+x", CUDA_TOOLKIT_FILE])
-        subprocess.call([CUDA_TOOLKIT_FILE, "--silent", "--toolkit"])
-    
-        os.environ["CUDA_HOME"] = "/usr/local/cuda"
-        os.environ["PATH"] = "%s/bin:%s" % (os.environ["CUDA_HOME"], os.environ["PATH"])
-        os.environ["LD_LIBRARY_PATH"] = "%s/lib:%s" % (
-            os.environ["CUDA_HOME"],
-            "" if "LD_LIBRARY_PATH" not in os.environ else os.environ["LD_LIBRARY_PATH"],
-        )
-        # Fix: arch_list[-1] += '+PTX'; IndexError: list index out of range
-        os.environ["TORCH_CUDA_ARCH_LIST"] = "8.0;8.6"
-    
-    # install_cuda_toolkit()
     print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
     os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    # print("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
-    # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
     print('install custom')
-    # install_package("/home/user/app/hy3dgen/texgen/custom_rasterizer")
     subprocess.run(shlex.split("pip install . --no-build-isolation"), cwd="/home/user/app/hy3dgen/texgen/custom_rasterizer/", check=True)
-    # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
     
     IP = "0.0.0.0"
     PORT = 7860
@@ -457,6 +418,6 @@ if __name__ == '__main__':
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     demo = build_app()
-    demo.queue(max_size=2)
+    demo.queue(max_size=1)
     app = gr.mount_gradio_app(app, demo, path="/")
     uvicorn.run(app, host=IP, port=PORT)
