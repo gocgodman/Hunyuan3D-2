@@ -111,7 +111,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-@spaces.GPU(duration=60)
+@spaces.GPU(duration=100)
 def _gen_shape(
     caption,
     image,
@@ -170,7 +170,7 @@ def _gen_shape(
     stats['time'] = time_meta
     return mesh, save_folder, image
 
-@spaces.GPU(duration=90)
+@spaces.GPU(duration=150)
 def generation_all(
     caption,
     image,
@@ -203,7 +203,7 @@ def generation_all(
         model_viewer_html_textured,
     )
 
-@spaces.GPU(duration=60)
+@spaces.GPU(duration=100)
 def shape_generation(
     caption,
     image,
@@ -418,6 +418,6 @@ if __name__ == '__main__':
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     demo = build_app()
-    demo.queue(max_size=3)
+    demo.queue(max_size=10)
     app = gr.mount_gradio_app(app, demo, path="/")
     uvicorn.run(app, host=IP, port=PORT)
