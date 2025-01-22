@@ -33,3 +33,4 @@ sentencepiece
 gradio
 uvicorn
 fastapi
+wheel
