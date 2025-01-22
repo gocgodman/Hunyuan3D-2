@@ -22,7 +22,7 @@ if True:
     
     # install_cuda_toolkit()
     os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && pip install .")
+    os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && python3 -m pip install .")
     # os.system("cd /home/user/app/hy3dgen/texgen/custom_rasterizer && CUDA_HOME=/usr/local/cuda FORCE_CUDA=1 TORCH_CUDA_ARCH_LIST='8.0;8.6;8.9;9.0' python setup.py install")
     
     IP = "0.0.0.0"
