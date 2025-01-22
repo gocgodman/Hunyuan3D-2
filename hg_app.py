@@ -1,5 +1,5 @@
 # pip install gradio==4.44.1
-if False:
+if True:
     import os
     import spaces
     import subprocess
