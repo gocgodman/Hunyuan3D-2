@@ -1,5 +1,5 @@
 # pip install gradio==4.44.1
-if False:
+if True:
     import os
     import spaces
     import subprocess
@@ -431,6 +431,6 @@ if __name__ == '__main__':
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     demo = build_app()
-    demo.queue(max_size=10)
+    demo.queue(max_size=1)
     app = gr.mount_gradio_app(app, demo, path="/")
     uvicorn.run(app, host=IP, port=PORT)
