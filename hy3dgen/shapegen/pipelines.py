@@ -186,6 +186,7 @@ class Hunyuan3DDiTPipeline:
             scheduler=scheduler,
             conditioner=conditioner,
             image_processor=image_processor,
+            scheduler_cfg=config['scheduler'],
             device=device,
             dtype=dtype,
         )
@@ -252,6 +253,7 @@ class Hunyuan3DDiTPipeline:
         self.scheduler = scheduler
         self.conditioner = conditioner
         self.image_processor = image_processor
+        self.kwargs = kwargs
 
         self.to(device, dtype)
 
@@ -421,8 +423,10 @@ class Hunyuan3DDiTPipeline:
         batch_size = image.shape[0]
 
         t_dtype = torch.long
+        scheduler = instantiate_from_config(self.kwargs['scheduler_cfg'])
         timesteps, num_inference_steps = retrieve_timesteps(
-            self.scheduler, num_inference_steps, device, timesteps, sigmas)
+            scheduler, num_inference_steps, device, timesteps, sigmas
+        )
 
         latents = self.prepare_latents(batch_size, dtype, device, generator)
         extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
@@ -581,3 +585,4 @@ class Hunyuan3DDiTFlowMatchingPipeline(Hunyuan3DDiTPipeline):
             output_type,
             box_v, mc_level, num_chunks, octree_resolution, mc_algo,
         )
+
