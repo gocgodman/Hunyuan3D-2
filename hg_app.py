@@ -3,7 +3,7 @@ if True:
     import os
     import spaces
     import subprocess
-
+    import sys
     def install_package(package_path):
         # 确保 package_path 是绝对路径
         package_path = os.path.abspath(package_path)
