@@ -193,8 +193,8 @@ def _gen_shape(
         octree_resolution=octree_resolution
     )[0]
 
-    # mesh = FloaterRemover()(mesh)
-    # mesh = DegenerateFaceRemover()(mesh)
+    mesh = FloaterRemover()(mesh)
+    mesh = DegenerateFaceRemover()(mesh)
     mesh = FaceReducer()(mesh)
 
     stats['number_of_faces'] = mesh.faces.shape[0]
@@ -453,6 +453,6 @@ if __name__ == '__main__':
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     demo = build_app()
-    demo.queue(max_size=4)
+    demo.queue(max_size=9)
     app = gr.mount_gradio_app(app, demo, path="/")
     uvicorn.run(app, host=IP, port=PORT)
