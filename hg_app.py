@@ -266,7 +266,7 @@ def build_app():
                                              info='Example: A 3D model of a cute cat, white background')
 
                 with gr.Accordion('Advanced Options', open=False):
-                    num_steps = gr.Slider(maximum=50, minimum=20, value=30, step=1, label='Inference Steps')
+                    num_steps = gr.Slider(maximum=50, minimum=20, value=50, step=1, label='Inference Steps')
                     octree_resolution = gr.Dropdown([256, 384, 512], value=256, label='Octree Resolution')
                     cfg_scale = gr.Number(value=5.5, label='Guidance Scale')
                     seed = gr.Slider(maximum=1e7, minimum=0, value=1234, label='Seed')
@@ -418,6 +418,6 @@ if __name__ == '__main__':
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     demo = build_app()
-    demo.queue(max_size=1)
+    demo.queue(max_size=3)
     app = gr.mount_gradio_app(app, demo, path="/")
     uvicorn.run(app, host=IP, port=PORT)
