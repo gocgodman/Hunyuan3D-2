@@ -251,7 +251,7 @@ def build_app():
     <div align="center">
       <a href="https://github.com/tencent/Hunyuan3D-2">Github Page</a> &ensp; 
       <a href="http://3d-models.hunyuan.tencent.com">Homepage</a> &ensp;
-      <a href="#">Technical Report</a> &ensp;
+      <a href="https://arxiv.org/abs/2501.12202">Technical Report</a> &ensp;
       <a href="https://huggingface.co/Tencent/Hunyuan3D-2"> Models</a> &ensp;
     </div>
     """
