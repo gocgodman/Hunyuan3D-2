@@ -28,6 +28,20 @@
 <div class="centered-container">
     <model-viewer>
 </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modelViewers = document.querySelectorAll('model-viewer');
+
+        modelViewers.forEach(modelViewer => {
+            modelViewer.addEventListener('load', (event) => {
+                const [material] = modelViewer.model.materials;
+                material.pbrMetallicRoughness.setMetallicFactor(0.1);
+                material.pbrMetallicRoughness.setRoughnessFactor(0.5);
+            });
+        });
+    });
+</script>
 </body>
 
 </html>
