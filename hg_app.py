@@ -1,5 +1,14 @@
 # pip install gradio==4.44.1
-if True:
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--port', type=int, default=8080)
+parser.add_argument('--cache-path', type=str, default='gradio_cache')
+parser.add_argument('--enable_t23d', default=True)
+parser.add_argument('--local', action="store_true")
+args = parser.parse_args()
+
+print(f"Running on {'local' if args.local else 'huggingface'}")
+if not args.local:
     import os
     import spaces
     import subprocess
@@ -370,13 +379,6 @@ def build_app():
 
 
 if __name__ == '__main__':
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--port', type=int, default=8080)
-    parser.add_argument('--cache-path', type=str, default='gradio_cache')
-    parser.add_argument('--enable_t23d', default=True)
-    args = parser.parse_args()
 
     CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
     SAVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.cache_path)
