@@ -4,6 +4,13 @@ from PIL import Image
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline, FaceReducer, FloaterRemover, DegenerateFaceRemover
 from hy3dgen.text2image import HunyuanDiTPipeline
 import os
+from google.colab import drive
+
+# '/content/drive' 경로가 없으면 생성
+if not os.path.exists('/content/drive'):
+    os.makedirs('/content/drive')
+
+drive.mount('/content/drive')
 
 # 구글 드라이브에 모델을 저장할 폴더 생성
 drive_model_folder = '/content/drive/MyDrive/Hunyuan3D-2'
