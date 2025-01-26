@@ -25,20 +25,18 @@
 import torch
 from PIL import Image
 
-from hy3dgen.rembg import BackgroundRemover
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline, FaceReducer, FloaterRemover, DegenerateFaceRemover
 from hy3dgen.text2image import HunyuanDiTPipeline
 
 
 def image_to_3d(image_path='Hunyuan3D-2.assets.demo.png'):
-    rembg = BackgroundRemover()
+    
     model_path = 'Hunyuan3D-2'
 
     image = Image.open(image_path)
     image = image.resize((1024, 1024))
 
-    if image.mode == 'RGB':
-        image = rembg(image)
+    
 
     pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
 
