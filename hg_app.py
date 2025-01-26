@@ -29,22 +29,22 @@ if not args.local:
 
     def get_system_info():
     # 시스템 정보 확인
-    system_info = {
+        system_info = {
         'os': platform.system(),  # 운영 체제 (예: 'Linux', 'Windows')
         'architecture': platform.architecture()[0],  # 시스템 아키텍처 (예: '64bit', '32bit')
         'python_version': platform.python_version(),  # Python 버전 (예: '3.8.10')
         'machine': platform.machine(),  # 머신 아키텍처 (예: 'x86_64', 'arm64')
         'processor': platform.processor()  # 프로세서 정보
-    }
+        }
     return system_info
 
     def find_compatible_whl(system_info):
     # Python 버전과 아키텍처에 맞는 .whl 파일을 찾기
-    python_version = system_info['python_version']
-    architecture = system_info['architecture']
+        python_version = system_info['python_version']
+        architecture = system_info['architecture']
     
     # 예시로, `custom_rasterizer`의 경우 `cp310` (Python 3.10) 과 `x86_64` 아키텍처에 맞는 `.whl` 파일을 찾음
-    whl_filename = f"custom_rasterizer-0.1-cp{python_version.replace('.', '')}-cp{python_version.replace('.', '')}-linux_{architecture}.whl"
+        whl_filename = f"custom_rasterizer-0.1-cp{python_version.replace('.', '')}-cp{python_version.replace('.', '')}-linux_{architecture}.whl"
 
     # 파일 경로 확인 (현재 경로에서 찾기)
     if os.path.exists(whl_filename):
