@@ -1,10 +1,16 @@
 import gradio as gr
 import torch
 from PIL import Image
-from google.colab import drive  # 구글 드라이브 연동을 위해 import
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline, FaceReducer, FloaterRemover, DegenerateFaceRemover
 from hy3dgen.text2image import HunyuanDiTPipeline
 import os
+from google.colab import drive
+
+# '/content/drive' 경로가 없으면 생성
+if not os.path.exists('/content/drive'):
+    os.makedirs('/content/drive')
+
+drive.mount('/content/drive')
 
 # 구글 드라이브 연동
 drive.mount('/content/drive')  # Google Drive를 '/content/drive' 경로에 마운트
