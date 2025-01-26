@@ -181,8 +181,7 @@ def build_app():
         # 결과 표시
         generate_button.click(fn=process_model, inputs=[image_input, text_input], outputs=output_html)
 
-        demo.load(start_session)
-        demo.unload(end_session)
+        demo.launch(share=True)
 
     return demo
 
