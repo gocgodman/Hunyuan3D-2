@@ -140,7 +140,7 @@ def build_app():
                         with gr.Row():
                             gr.Examples(examples=[], inputs=[image], label="Image Prompts", examples_per_page=18)
 
-                    with gr.Tab('Text to 3D Gallery', id='tab_txt_gallery', id='tab_gt'):
+                    with gr.Tab('Text to 3D Gallery', id='tab_txt_gallery'):
                         with gr.Row():
                             gr.Examples(examples=[], inputs=[caption], label="Text Prompts", examples_per_page=18)
 
