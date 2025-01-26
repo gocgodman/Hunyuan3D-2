@@ -12,7 +12,10 @@ import torch
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+import subprocess
+import platform
 
+# 인자 파서 설정
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', type=int, default=8080)
 parser.add_argument('--cache-path', type=str, default='gradio_cache')
@@ -20,72 +23,64 @@ parser.add_argument('--enable_t23d', default=True)
 parser.add_argument('--local', action="store_true")
 args = parser.parse_args()
 
+# 로컬 모드에서 실행되지 않도록 조건부 처리
 if not args.local:
     import subprocess
     import shlex
-    import os
 
-    
-
+    # 시스템 정보 확인 함수
     def get_system_info():
-    # 시스템 정보 확인
         system_info = {
-        'os': platform.system(),  # 운영 체제 (예: 'Linux', 'Windows')
-        'architecture': platform.architecture()[0],  # 시스템 아키텍처 (예: '64bit', '32bit')
-        'python_version': platform.python_version(),  # Python 버전 (예: '3.8.10')
-        'machine': platform.machine(),  # 머신 아키텍처 (예: 'x86_64', 'arm64')
-        'processor': platform.processor()  # 프로세서 정보
+            'os': platform.system(),
+            'architecture': platform.architecture()[0],
+            'python_version': platform.python_version(),
+            'machine': platform.machine(),
+            'processor': platform.processor()
         }
-    return system_info
+        return system_info
 
+    # 호환되는 .whl 파일 찾기
     def find_compatible_whl(system_info):
-    # Python 버전과 아키텍처에 맞는 .whl 파일을 찾기
         python_version = system_info['python_version']
         architecture = system_info['architecture']
-    
-    # 예시로, `custom_rasterizer`의 경우 `cp310` (Python 3.10) 과 `x86_64` 아키텍처에 맞는 `.whl` 파일을 찾음
         whl_filename = f"custom_rasterizer-0.1-cp{python_version.replace('.', '')}-cp{python_version.replace('.', '')}-linux_{architecture}.whl"
+        
+        if os.path.exists(whl_filename):
+            return whl_filename
+        else:
+            print(f"Warning: {whl_filename} does not exist in the current directory.")
+            return None
 
-    # 파일 경로 확인 (현재 경로에서 찾기)
-    if os.path.exists(whl_filename):
-        return whl_filename
-    else:
-        print(f"Warning: {whl_filename} does not exist in the current directory.")
-        return None
-    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    os.system("cd /hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    print('install custom')
-    subprocess.run(shlex.split("pip install {whl_filename}"), check=True)   
+    # 시스템 정보 출력
+    system_info = get_system_info()
+    print(f"Detected system info: {system_info}")
 
-def install_whl(whl_file):
+    # 호환되는 whl 파일 찾고 설치
+    whl_file = find_compatible_whl(system_info)
     if whl_file:
-        try:
-            print(f"Installing {whl_file}...")
-            subprocess.run(["pip", "install", whl_file], check=True)
-            print("Installation successful!")
-        except subprocess.CalledProcessError as e:
-            print(f"Error installing {whl_file}: {e}")
+        print(f"Installing {whl_file}...")
+        subprocess.run(["pip", "install", whl_file], check=True)
+        print("Installation successful!")
     else:
         print("No compatible .whl file found to install.")
 
-if __name__ == "__main__":
-    system_info = get_system_info()
-    print(f"Detected system info: {system_info}")
-    
-    whl_file = find_compatible_whl(system_info)
-    install_whl(whl_file)
+    # 필요한 스크립트 실행
+    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+    os.system("cd /hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
 
+    # 실행된 경우 IP, PORT 설정
     IP = "0.0.0.0"
     PORT = 7860
 else:
     IP = "0.0.0.0"
     PORT = 8080
 
-# Initialize directories
+# 기본 디렉토리 설정
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SAVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.cache_path)
 os.makedirs(SAVE_DIR, exist_ok=True)
 
+# 세션 시작, 종료 함수
 def start_session(req: gr.Request):
     save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
     os.makedirs(save_folder, exist_ok=True)
@@ -94,17 +89,19 @@ def end_session(req: gr.Request):
     save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
     shutil.rmtree(save_folder)
 
+# 예제 이미지 및 텍스트 목록 반환 함수
 def get_example_img_list():
     print('Loading example img list ...')
     return sorted(glob('./assets/example_images/*.png'))
 
 def get_example_txt_list():
     print('Loading example txt list ...')
-    txt_list = list()
+    txt_list = []
     for line in open('./assets/example_prompts.txt'):
         txt_list.append(line.strip())
     return txt_list
 
+# 메쉬 내보내기 함수
 def export_mesh(mesh, save_folder, textured=False):
     if textured:
         path = os.path.join(save_folder, f'textured_mesh.glb')
@@ -113,6 +110,7 @@ def export_mesh(mesh, save_folder, textured=False):
     mesh.export(path, include_normals=textured)
     return path
 
+# 모델 뷰어 HTML 생성 함수
 def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
     if textured:
         related_path = f"./textured_mesh.glb"
@@ -148,7 +146,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-# Gradio 앱을 FastAPI와 함께 실행
+# Gradio 앱 생성 함수
 def build_app():
     title_html = """
     <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
@@ -188,21 +186,19 @@ def build_app():
 
     return demo
 
+# 모델 처리 함수
 def process_model(image, description):
     # 모델 생성 함수, 이미지를 사용하고 텍스트로 설명을 받음
     print("Processing model with image and description...")
     save_folder = os.path.join(SAVE_DIR, str(uuid.uuid4()))
     os.makedirs(save_folder, exist_ok=True)
     
-    # 이미지와 텍스트로 모델 생성하는 코드 추가
-    # 예를 들어, 모델을 텍스쳐화된 형태로 생성하는 함수 (텍스트에 대한 처리 추가 가능)
-    
-    # 모델 결과 HTML 생성
+    # 모델을 텍스쳐화된 형태로 생성하는 코드
     result_html = build_model_viewer_html(save_folder, textured=True)
     return result_html
 
 if __name__ == '__main__':
-    # FastAPI app 생성
+    # FastAPI 앱 생성
     app = FastAPI()
     static_dir = Path('./gradio_cache')
     static_dir.mkdir(parents=True, exist_ok=True)
