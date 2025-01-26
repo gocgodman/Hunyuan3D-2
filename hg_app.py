@@ -2,18 +2,17 @@ import argparse
 import os
 import shutil
 import time
-import uuid
 from glob import glob
 from pathlib import Path
 from PIL import Image
 from datetime import datetime
-import torch
+import uuid
 import gradio as gr
+import torch
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-# Gradio 앱 실행에 필요한 경로 설정
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', type=int, default=8080)
 parser.add_argument('--cache-path', type=str, default='gradio_cache')
@@ -21,27 +20,46 @@ parser.add_argument('--enable_t23d', default=True)
 parser.add_argument('--local', action="store_true")
 args = parser.parse_args()
 
-# 기본 경로 설정
+if not args.local:
+    import subprocess
+    import shlex
+    import os
+
+    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+    os.system("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+    print('install custom')
+    subprocess.run(shlex.split("pip install custom_rasterizer-0.1-cp310-cp310-linux_x86_64.whl"), check=True)    
+    
+    IP = "0.0.0.0"
+    PORT = 7860
+else:
+    IP = "0.0.0.0"
+    PORT = 8080
+
+# Initialize directories
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 SAVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.cache_path)
 os.makedirs(SAVE_DIR, exist_ok=True)
 
-# 모델 불러오기
-from hy3dgen.texgen import Hunyuan3DPaintPipeline
-from hy3dgen.text2image import HunyuanDiTPipeline
-from hy3dgen.shapegen import FaceReducer, FloaterRemover, DegenerateFaceRemover, Hunyuan3DDiTFlowMatchingPipeline
-from hy3dgen.rembg import BackgroundRemover
+def start_session(req: gr.Request):
+    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
+    os.makedirs(save_folder, exist_ok=True)
 
-# 각 파이프라인 로드
-rmbg_worker = BackgroundRemover()
-texgen_worker = Hunyuan3DPaintPipeline.from_pretrained('tencent/Hunyuan3D-2')
-t2i_worker = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled')
-i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained('tencent/Hunyuan3D-2')
-floater_remove_worker = FloaterRemover()
-degenerate_face_remove_worker = DegenerateFaceRemover()
-face_reduce_worker = FaceReducer()
+def end_session(req: gr.Request):
+    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
+    shutil.rmtree(save_folder)
 
-# 3D 메쉬 생성 및 파일 내보내기 함수
+def get_example_img_list():
+    print('Loading example img list ...')
+    return sorted(glob('./assets/example_images/*.png'))
+
+def get_example_txt_list():
+    print('Loading example txt list ...')
+    txt_list = list()
+    for line in open('./assets/example_prompts.txt'):
+        txt_list.append(line.strip())
+    return txt_list
+
 def export_mesh(mesh, save_folder, textured=False):
     if textured:
         path = os.path.join(save_folder, f'textured_mesh.glb')
@@ -50,7 +68,6 @@ def export_mesh(mesh, save_folder, textured=False):
     mesh.export(path, include_normals=textured)
     return path
 
-# 모델 뷰어 HTML 생성 함수
 def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
     if textured:
         related_path = f"./textured_mesh.glb"
@@ -78,6 +95,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
 
     output_html_path = output_html_path.replace(SAVE_DIR + '/', '')
     iframe_tag = f'<iframe src="/static/{output_html_path}" height="{height}" width="100%" frameborder="0"></iframe>'
+    print(f'Find html {output_html_path}, {os.path.exists(output_html_path)}')
 
     return f"""
         <div style='height: {height}; width: 100%;'>
@@ -85,76 +103,61 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-# 3D 모델 생성 로직
-def _gen_shape(caption: str, image: Image.Image, steps: int, guidance_scale: float, seed: int, octree_resolution: int, check_box_rembg: bool, req: gr.Request):
-    save_folder = os.path.join(SAVE_DIR, str(req.session_hash)) 
-    os.makedirs(save_folder, exist_ok=True)
-
-    # 텍스트나 이미지로부터 3D 모델 생성
-    if image is None:
-        try:
-            image = t2i_worker(caption)
-        except Exception as e:
-            raise gr.Error(f"Text to 3D is disable. Please enable it by `python gradio_app.py --enable_t23d`.")
-    image.save(os.path.join(save_folder, 'input.png'))
-
-    if check_box_rembg:
-        image = rmbg_worker(image.convert('RGB'))
-    
-    image.save(os.path.join(save_folder, 'rembg.png'))
-
-    generator = torch.Generator()
-    generator = generator.manual_seed(int(seed))
-    mesh = i23d_worker(image=image, num_inference_steps=steps, guidance_scale=guidance_scale, generator=generator, octree_resolution=octree_resolution)[0]
-    
-    mesh = FloaterRemover()(mesh)
-    mesh = DegenerateFaceRemover()(mesh)
-    mesh = FaceReducer()(mesh)
-
-    return mesh, save_folder, image
-
-def generation_all(caption: str, image: Image.Image, steps: int, guidance_scale: float, seed: int, octree_resolution: int, check_box_rembg: bool, req: gr.Request):
-    mesh, save_folder, image = _gen_shape(caption, image, steps, guidance_scale, seed, octree_resolution, check_box_rembg, req)
-    path = export_mesh(mesh, save_folder, textured=False)
-    model_viewer_html = build_model_viewer_html(save_folder, height=596, width=700)
-
-    textured_mesh = texgen_worker(mesh, image)
-    path_textured = export_mesh(textured_mesh, save_folder, textured=True)
-    model_viewer_html_textured = build_model_viewer_html(save_folder, height=596, width=700, textured=True)
-
-    return path, path_textured, model_viewer_html, model_viewer_html_textured
-
-# Gradio UI 구성
+# Gradio 앱을 FastAPI와 함께 실행
 def build_app():
-    with gr.Blocks() as demo:
+    title_html = """
+    <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
+    Hunyuan3D-2: Scaling Diffusion Models for High Resolution Textured 3D Assets Generation
+    </div>
+    <div align="center">
+    Tencent Hunyuan3D Team
+    </div>
+    <div align="center">
+      <a href="https://github.com/tencent/Hunyuan3D-2">Github Page</a> &ensp; 
+      <a href="http://3d-models.hunyuan.tencent.com">Homepage</a> &ensp;
+      <a href="https://arxiv.org/abs/2501.12202">Technical Report</a> &ensp;
+      <a href="https://huggingface.co/Tencent/Hunyuan3D-2"> Models</a> &ensp;
+    </div>
+    """
+    
+    with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0') as demo:
+        gr.HTML(title_html)
+
+        # 사용자 입력 필드
         with gr.Row():
-            image = gr.Image(label='Input Image', type='pil', height=290)
-            caption = gr.Textbox(label='Text Prompt', placeholder='Example: A 3D model of a cute cat')
+            with gr.Column(scale=1):
+                image_input = gr.Image(type="pil", label="Upload Image")
+                text_input = gr.Textbox(label="Enter Description", placeholder="Type a description here...")
 
-            check_box_rembg = gr.Checkbox(value=True, label='Remove Background')
+        # 버튼 및 그리드 출력
+        with gr.Row():
+            with gr.Column():
+                generate_button = gr.Button("Generate 3D Model")
+                output_html = gr.HTML(label="Generated 3D Model")
 
-            num_steps = gr.Slider(maximum=50, minimum=20, value=50, step=1, label='Inference Steps')
-            octree_resolution = gr.Dropdown([256, 384, 512], value=256, label='Octree Resolution')
-            cfg_scale = gr.Number(value=5.5, label='Guidance Scale')
-            seed = gr.Slider(maximum=1e7, minimum=0, value=1234, label='Seed')
+        # 결과 표시
+        generate_button.click(fn=process_model, inputs=[image_input, text_input], outputs=output_html)
 
-            btn_all = gr.Button(value='Generate Shape and Texture', variant='primary')
-
-            file_out = gr.DownloadButton(label="Download White Mesh", interactive=False)
-            file_out2 = gr.DownloadButton(label="Download Textured Mesh", interactive=False)
-
-            html_output1 = gr.HTML(label='3D Model')
-            html_output2 = gr.HTML(label='Textured Model')
-
-        btn_all.click(
-            generation_all,
-            inputs=[caption, image, num_steps, cfg_scale, seed, octree_resolution, check_box_rembg],
-            outputs=[file_out, file_out2, html_output1, html_output2]
-        )
+        demo.load(start_session)
+        demo.unload(end_session)
 
     return demo
 
+def process_model(image, description):
+    # 모델 생성 함수, 이미지를 사용하고 텍스트로 설명을 받음
+    print("Processing model with image and description...")
+    save_folder = os.path.join(SAVE_DIR, str(uuid.uuid4()))
+    os.makedirs(save_folder, exist_ok=True)
+    
+    # 이미지와 텍스트로 모델 생성하는 코드 추가
+    # 예를 들어, 모델을 텍스쳐화된 형태로 생성하는 함수 (텍스트에 대한 처리 추가 가능)
+    
+    # 모델 결과 HTML 생성
+    result_html = build_model_viewer_html(save_folder, textured=True)
+    return result_html
+
 if __name__ == '__main__':
+    # FastAPI app 생성
     app = FastAPI()
     static_dir = Path('./gradio_cache')
     static_dir.mkdir(parents=True, exist_ok=True)
@@ -162,5 +165,8 @@ if __name__ == '__main__':
 
     demo = build_app()
     demo.queue(max_size=10)
+    
+    # Gradio 앱을 FastAPI와 통합
     app = gr.mount_gradio_app(app, demo, path="/")
-    uvicorn.run(app, host="0.0.0.0", port=args.port)
+    
+    uvicorn.run(app, host=IP, port=PORT)
