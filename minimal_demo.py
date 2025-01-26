@@ -25,7 +25,7 @@
 import torch
 from PIL import Image
 
-from hy3dgen.rembg.py import BackgroundRemover
+from hy3dgen.(rembg.py) import BackgroundRemover
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline, FaceReducer, FloaterRemover, DegenerateFaceRemover
 from hy3dgen.text2image import HunyuanDiTPipeline
 
