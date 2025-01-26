@@ -2,7 +2,6 @@ import gradio as gr
 import torch
 from PIL import Image
 from google.colab import drive  # 구글 드라이브 연동을 위해 import
-from hy3dgen.rembg import BackgroundRemover
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline, FaceReducer, FloaterRemover, DegenerateFaceRemover
 from hy3dgen.text2image import HunyuanDiTPipeline
 import os
@@ -15,7 +14,6 @@ drive_model_folder = '/content/drive/MyDrive/Hunyuan3D-2'
 os.makedirs(drive_model_folder, exist_ok=True)
 
 def image_to_3d(image, num_steps, cfg_scale, seed, octree_resolution, remove_bg):
-    rembg = BackgroundRemover()
     model_path = os.path.join(drive_model_folder, 'Hunyuan3D-2')  # 구글 드라이브 내 모델 경로 설정
 
     # 모델이 로드되지 않은 경우 구글 드라이브에서 다운로드
@@ -25,9 +23,7 @@ def image_to_3d(image, num_steps, cfg_scale, seed, octree_resolution, remove_bg)
         # 모델 파일을 다운로드하는 코드가 필요하면 여기 추가
 
     # 이미지 전처리
-    if remove_bg and image.mode == 'RGB':
-        image = rembg(image)
-
+    
     # 3D 생성 파이프라인 설정
     pipeline = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
     mesh = pipeline(image=image, num_inference_steps=num_steps, mc_algo='mc',
@@ -47,7 +43,6 @@ def image_to_3d(image, num_steps, cfg_scale, seed, octree_resolution, remove_bg)
 
 
 def text_to_3d(prompt, num_steps, cfg_scale, seed, octree_resolution):
-    rembg = BackgroundRemover()
     t2i = HunyuanDiTPipeline('Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled')
     model_path = os.path.join(drive_model_folder, 'Hunyuan3D-2')  # 구글 드라이브 내 모델 경로 설정
 
@@ -59,7 +54,6 @@ def text_to_3d(prompt, num_steps, cfg_scale, seed, octree_resolution):
 
     # 텍스트로부터 이미지 생성
     image = t2i(prompt)
-    image = rembg(image)
 
     # 이미지로 3D 모델 생성
     i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
