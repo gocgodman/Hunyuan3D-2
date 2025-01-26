@@ -30,9 +30,9 @@ from /content/Hunyuan3D-2/hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeli
 from /content/Hunyuan3D-2/hy3dgen.text2image import HunyuanDiTPipeline
 
 
-def image_to_3d(image_path='assets/demo.png'):
+def image_to_3d(image_path='/content/Hunyuan3D-2/assets/demo.png'):
     rembg = BackgroundRemover()
-    model_path = 'Hunyuan3D-2'
+    model_path = '/content/Hunyuan3D-2'
 
     image = Image.open(image_path)
     image = image.resize((1024, 1024))
@@ -62,7 +62,7 @@ def image_to_3d(image_path='assets/demo.png'):
 def text_to_3d(prompt='a car'):
     rembg = BackgroundRemover()
     t2i = HunyuanDiTPipeline('Tencent-Hunyuan--HunyuanDiT-v1.1-Diffusers-Distilled')
-    model_path = 'Hunyuan3D-2'
+    model_path = '/content/Hunyuan3D-2'
     i23d = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(model_path)
 
     image = t2i(prompt)
