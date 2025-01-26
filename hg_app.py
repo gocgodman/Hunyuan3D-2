@@ -52,6 +52,10 @@ if not args.local:
     else:
         print(f"Warning: {whl_filename} does not exist in the current directory.")
         return None
+    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+    os.system("cd /hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
+    print('install custom')
+    subprocess.run(shlex.split("pip install {whl_filename}"), check=True)   
 
 def install_whl(whl_file):
     if whl_file:
