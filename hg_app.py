@@ -1,4 +1,3 @@
-import argparse
 import os
 import shutil
 import time
@@ -9,23 +8,19 @@ from datetime import datetime
 import uuid
 import gradio as gr
 import torch
+import uvicorn
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
-# Argument parsing for setting the port, cache path, and enabling text-to-3D
-parser = argparse.ArgumentParser()
-parser.add_argument('--port', type=int, default=8080)
-parser.add_argument('--cache-path', type=str, default='gradio_cache')
-parser.add_argument('--enable_t23d', default=True)
-parser.add_argument('--local', action="store_true")
-args = parser.parse_args()
 
-print(f"Running on {'local' if args.local else 'huggingface'}")
+def start_session(req: gr.Request):
+    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
+    os.makedirs(save_folder, exist_ok=True)
+        
+def end_session(req: gr.Request):
+    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
+    shutil.rmtree(save_folder)
 
-# Directory setup
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-SAVE_DIR = os.path.join(CURRENT_DIR, args.cache_path)
-os.makedirs(SAVE_DIR, exist_ok=True)
-
-# Helper functions
 def get_example_img_list():
     print('Loading example img list ...')
     return sorted(glob('./assets/example_images/*.png'))
@@ -37,6 +32,7 @@ def get_example_txt_list():
     for line in open('./assets/example_prompts.txt'):
         txt_list.append(line.strip())
     return txt_list
+
 
 def export_mesh(mesh, save_folder, textured=False):
     if textured:
@@ -82,7 +78,7 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
     """
 
 
-@gr.outputs.GPU(duration=100)
+@gr.GPU(duration=100)
 def _gen_shape(
     caption: str,
     image: Image.Image,
@@ -93,6 +89,7 @@ def _gen_shape(
     check_box_rembg: bool,
     req: gr.Request,
 ):
+    if caption: print('prompt is', caption)
     save_folder = os.path.join(SAVE_DIR, str(req.session_hash)) 
     os.makedirs(save_folder, exist_ok=True)
 
@@ -110,6 +107,7 @@ def _gen_shape(
 
     image.save(os.path.join(save_folder, 'input.png'))
 
+    print(f"[{datetime.now()}][HunYuan3D-2]]", str(req.session_hash), image.mode)
     if check_box_rembg or image.mode == "RGB":
         start_time = time.time()
         image = rmbg_worker(image.convert('RGB'))
@@ -117,7 +115,9 @@ def _gen_shape(
 
     image.save(os.path.join(save_folder, 'rembg.png'))
 
+    # image to white model
     start_time = time.time()
+
     generator = torch.Generator()
     generator = generator.manual_seed(int(seed))
     mesh = i23d_worker(
@@ -142,10 +142,77 @@ def _gen_shape(
     torch.cuda.empty_cache()
     return mesh, save_folder, image
 
-# Gradio app build
+@gr.GPU(duration=150)
+def generation_all(
+    caption: str,
+    image: Image.Image,
+    steps: int,
+    guidance_scale: float,
+    seed: int,
+    octree_resolution: int,
+    check_box_rembg: bool,
+    req: gr.Request,
+):
+    mesh, save_folder, image = _gen_shape(
+        caption,
+        image,
+        steps=steps,
+        guidance_scale=guidance_scale,
+        seed=seed,
+        octree_resolution=octree_resolution,
+        check_box_rembg=check_box_rembg,
+        req=req
+    )
+    path = export_mesh(mesh, save_folder, textured=False)
+    model_viewer_html = build_model_viewer_html(save_folder, height=596, width=700)
+
+    textured_mesh = texgen_worker(mesh, image)
+    path_textured = export_mesh(textured_mesh, save_folder, textured=True)
+    model_viewer_html_textured = build_model_viewer_html(save_folder, height=596, width=700, textured=True)
+
+    torch.cuda.empty_cache()
+    return (
+        path,
+        path_textured, 
+        model_viewer_html,
+        model_viewer_html_textured,
+    )
+
+@gr.GPU(duration=100)
+def shape_generation(
+    caption: str,
+    image: Image.Image,
+    steps: int,
+    guidance_scale: float,
+    seed: int,
+    octree_resolution: int,
+    check_box_rembg: bool,
+    req: gr.Request,
+):
+    mesh, save_folder, image = _gen_shape(
+        caption,
+        image,
+        steps=steps,
+        guidance_scale=guidance_scale,
+        seed=seed,
+        octree_resolution=octree_resolution,
+        check_box_rembg=check_box_rembg,
+        req=req,
+    )
+
+    path = export_mesh(mesh, save_folder, textured=False)
+    model_viewer_html = build_model_viewer_html(save_folder, height=596, width=700)
+
+    return (
+        path,
+        model_viewer_html,
+    )
+
+
 def build_app():
     title_html = """
     <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
+
     Hunyuan3D-2: Scaling Diffusion Models for High Resolution Textured 3D Assets Generation
     </div>
     <div align="center">
@@ -160,7 +227,7 @@ def build_app():
     </div>
     """
 
-    with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0') as demo:
+    with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0', delete_cache=(1000,1000)) as demo:
         gr.HTML(title_html)
 
         with gr.Row():
@@ -171,46 +238,25 @@ def build_app():
                         with gr.Row():
                             check_box_rembg = gr.Checkbox(value=True, label='Remove Background')
 
-                    with gr.Tab('Text Prompt', id='tab_txt_prompt') as tab_tp:
-                        caption = gr.Textbox(label='Text Prompt', placeholder='Generate 3D model from text')
+                    with gr.Tab('Text Prompt', id='tab_txt_prompt', visible=HAS_T2I) as tab_tp:
+                        caption = gr.Textbox(label='Text Prompt',
+                                             placeholder='HunyuanDiT will be used to generate image.',
+                                             info='Example: 3D model of a fantasy world for metaverse game')
+                    
+                    with gr.Row():
+                        steps = gr.Slider(minimum=1, maximum=50, value=25, label="Steps", interactive=True)
+                        guidance_scale = gr.Slider(minimum=1, maximum=20, value=7, label="Guidance scale", interactive=True)
+                        seed = gr.Slider(minimum=0, maximum=9999, value=42, label="Seed", interactive=True)
+                        octree_resolution = gr.Slider(minimum=4, maximum=10, value=7, label="Octree Resolution", interactive=True)
 
-                with gr.Accordion('Advanced Options', open=False):
-                    num_steps = gr.Slider(maximum=50, minimum=20, value=50, step=1, label='Inference Steps')
-                    octree_resolution = gr.Dropdown([256, 384, 512], value=256, label='Octree Resolution')
-                    cfg_scale = gr.Number(value=5.5, label='Guidance Scale')
-                    seed = gr.Slider(maximum=1e7, minimum=0, value=1234, label='Seed')
-
-                with gr.Group():
-                    btn = gr.Button(value='Generate Shape Only', variant='primary')
-                    btn_all = gr.Button(value='Generate Shape and Texture', variant='primary')
-
-                with gr.Group():
-                    file_out = gr.DownloadButton(label="Download White Mesh", interactive=False)
-                    file_out2 = gr.DownloadButton(label="Download Textured Mesh", interactive=False)
-
-            with gr.Column(scale=5):
-                with gr.Tabs():
-                    with gr.Tab('Generated Mesh') as mesh1:
-                        html_output1 = gr.HTML("<div style='height: 596px; width: 100%;'></div>", label='Output')
-                    with gr.Tab('Generated Textured Mesh') as mesh2:
-                        html_output2 = gr.HTML("<div style='height: 596px; width: 100%;'></div>", label='Output')
-
-        btn.click(
-            shape_generation,
-            inputs=[caption, image, num_steps, cfg_scale, seed, octree_resolution, check_box_rembg],
-            outputs=[file_out, html_output1]
-        )
-
-        btn_all.click(
-            generation_all,
-            inputs=[caption, image, num_steps, cfg_scale, seed, octree_resolution, check_box_rembg],
-            outputs=[file_out, file_out2, html_output1, html_output2]
-        )
+                    with gr.Row():
+                        generate_btn = gr.Button(value='Generate')
+                
+                gr.Examples(examples=get_example_img_list(), fn=generation_all, inputs=[caption, image, steps, guidance_scale, seed, octree_resolution, check_box_rembg], outputs=["file", "file", "html", "html"])
 
     return demo
 
+app = build_app()
 
-# Running Gradio app
-demo = build_app()
-demo.queue(max_size=10)
-demo.launch(server_port=args.port, server_name="0.0.0.0", share=True)
+if __name__ == "__main__":
+    app.launch(debug=True)
