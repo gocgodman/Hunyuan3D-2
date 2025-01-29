@@ -9,13 +9,8 @@ from datetime import datetime
 import uuid
 import gradio as gr
 import torch
-import uvicorn
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-import subprocess
-import platform
 
-# 인자 파서 설정
+# Argument parsing for setting the port, cache path, and enabling text-to-3D
 parser = argparse.ArgumentParser()
 parser.add_argument('--port', type=int, default=8080)
 parser.add_argument('--cache-path', type=str, default='gradio_cache')
@@ -23,85 +18,26 @@ parser.add_argument('--enable_t23d', default=True)
 parser.add_argument('--local', action="store_true")
 args = parser.parse_args()
 
-# 로컬 모드에서 실행되지 않도록 조건부 처리
-if not args.local:
-    import subprocess
-    import shlex
+print(f"Running on {'local' if args.local else 'huggingface'}")
 
-    # 시스템 정보 확인 함수
-    def get_system_info():
-        system_info = {
-            'os': platform.system(),
-            'architecture': platform.architecture()[0],
-            'python_version': platform.python_version(),
-            'machine': platform.machine(),
-            'processor': platform.processor()
-        }
-        return system_info
-
-    # 호환되는 .whl 파일 찾기
-    def find_compatible_whl(system_info):
-        python_version = system_info['python_version']
-        architecture = system_info['architecture']
-        whl_filename = f"custom_rasterizer-0.1-cp{python_version.replace('.', '')}-cp{python_version.replace('.', '')}-linux_{architecture}.whl"
-        
-        if os.path.exists(whl_filename):
-            return whl_filename
-        else:
-            print(f"Warning: {whl_filename} does not exist in the current directory.")
-            return None
-
-    # 시스템 정보 출력
-    system_info = get_system_info()
-    print(f"Detected system info: {system_info}")
-
-    # 호환되는 whl 파일 찾고 설치
-    whl_file = find_compatible_whl(system_info)
-    if whl_file:
-        print(f"Installing {whl_file}...")
-        subprocess.run(["pip", "install", whl_file], check=True)
-        print("Installation successful!")
-    else:
-        print("No compatible .whl file found to install.")
-
-    # 필요한 스크립트 실행
-    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    os.system("cd /hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-
-    # 실행된 경우 IP, PORT 설정
-    IP = "0.0.0.0"
-    PORT = 7860
-else:
-    IP = "0.0.0.0"
-    PORT = 8080
-
-# 기본 디렉토리 설정
+# Directory setup
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-SAVE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.cache_path)
+SAVE_DIR = os.path.join(CURRENT_DIR, args.cache_path)
 os.makedirs(SAVE_DIR, exist_ok=True)
 
-# 세션 시작, 종료 함수
-def start_session(req: gr.Request):
-    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
-    os.makedirs(save_folder, exist_ok=True)
-
-def end_session(req: gr.Request):
-    save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
-    shutil.rmtree(save_folder)
-
-# 예제 이미지 및 텍스트 목록 반환 함수
+# Helper functions
 def get_example_img_list():
     print('Loading example img list ...')
     return sorted(glob('./assets/example_images/*.png'))
 
+
 def get_example_txt_list():
     print('Loading example txt list ...')
-    txt_list = []
+    txt_list = list()
     for line in open('./assets/example_prompts.txt'):
         txt_list.append(line.strip())
     return txt_list
 
-# 메쉬 내보내기 함수
 def export_mesh(mesh, save_folder, textured=False):
     if textured:
         path = os.path.join(save_folder, f'textured_mesh.glb')
@@ -110,7 +46,6 @@ def export_mesh(mesh, save_folder, textured=False):
     mesh.export(path, include_normals=textured)
     return path
 
-# 모델 뷰어 HTML 생성 함수
 def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
     if textured:
         related_path = f"./textured_mesh.glb"
@@ -146,7 +81,68 @@ def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
         </div>
     """
 
-# Gradio 앱 생성 함수
+
+@gr.outputs.GPU(duration=100)
+def _gen_shape(
+    caption: str,
+    image: Image.Image,
+    steps: int,
+    guidance_scale: float,
+    seed: int,
+    octree_resolution: int,
+    check_box_rembg: bool,
+    req: gr.Request,
+):
+    save_folder = os.path.join(SAVE_DIR, str(req.session_hash)) 
+    os.makedirs(save_folder, exist_ok=True)
+
+    stats = {}
+    time_meta = {}
+    start_time_0 = time.time()
+
+    if image is None:
+        start_time = time.time()
+        try:
+            image = t2i_worker(caption)
+        except Exception as e:
+            raise gr.Error(f"Text to 3D is disable. Please enable it by `python gradio_app.py --enable_t23d`.")
+        time_meta['text2image'] = time.time() - start_time
+
+    image.save(os.path.join(save_folder, 'input.png'))
+
+    if check_box_rembg or image.mode == "RGB":
+        start_time = time.time()
+        image = rmbg_worker(image.convert('RGB'))
+        time_meta['rembg'] = time.time() - start_time
+
+    image.save(os.path.join(save_folder, 'rembg.png'))
+
+    start_time = time.time()
+    generator = torch.Generator()
+    generator = generator.manual_seed(int(seed))
+    mesh = i23d_worker(
+        image=image,
+        num_inference_steps=steps,
+        guidance_scale=guidance_scale,
+        generator=generator,
+        octree_resolution=octree_resolution
+    )[0]
+
+    mesh = FloaterRemover()(mesh)
+    mesh = DegenerateFaceRemover()(mesh)
+    mesh = FaceReducer()(mesh)
+
+    stats['number_of_faces'] = mesh.faces.shape[0]
+    stats['number_of_vertices'] = mesh.vertices.shape[0]
+
+    time_meta['image_to_textured_3d'] = {'total': time.time() - start_time}
+    time_meta['total'] = time.time() - start_time_0
+    stats['time'] = time_meta
+    
+    torch.cuda.empty_cache()
+    return mesh, save_folder, image
+
+# Gradio app build
 def build_app():
     title_html = """
     <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
@@ -160,53 +156,61 @@ def build_app():
       <a href="http://3d-models.hunyuan.tencent.com">Homepage</a> &ensp;
       <a href="https://arxiv.org/abs/2501.12202">Technical Report</a> &ensp;
       <a href="https://huggingface.co/Tencent/Hunyuan3D-2"> Models</a> &ensp;
+      <a href="https://github.com/Tencent/Hunyuan3D-2?tab=readme-ov-file#blender-addon"> Blender Addon</a> &ensp;
     </div>
     """
-    
+
     with gr.Blocks(theme=gr.themes.Base(), title='Hunyuan-3D-2.0') as demo:
         gr.HTML(title_html)
 
-        # 사용자 입력 필드
         with gr.Row():
-            with gr.Column(scale=1):
-                image_input = gr.Image(type="pil", label="Upload Image")
-                text_input = gr.Textbox(label="Enter Description", placeholder="Type a description here...")
+            with gr.Column(scale=2):
+                with gr.Tabs() as tabs_prompt:
+                    with gr.Tab('Image Prompt', id='tab_img_prompt') as tab_ip:
+                        image = gr.Image(label='Image', type='pil', image_mode='RGBA', height=290)
+                        with gr.Row():
+                            check_box_rembg = gr.Checkbox(value=True, label='Remove Background')
 
-        # 버튼 및 그리드 출력
-        with gr.Row():
-            with gr.Column():
-                generate_button = gr.Button("Generate 3D Model")
-                output_html = gr.HTML(label="Generated 3D Model")
+                    with gr.Tab('Text Prompt', id='tab_txt_prompt') as tab_tp:
+                        caption = gr.Textbox(label='Text Prompt', placeholder='Generate 3D model from text')
 
-        # 결과 표시
-        generate_button.click(fn=process_model, inputs=[image_input, text_input], outputs=output_html)
+                with gr.Accordion('Advanced Options', open=False):
+                    num_steps = gr.Slider(maximum=50, minimum=20, value=50, step=1, label='Inference Steps')
+                    octree_resolution = gr.Dropdown([256, 384, 512], value=256, label='Octree Resolution')
+                    cfg_scale = gr.Number(value=5.5, label='Guidance Scale')
+                    seed = gr.Slider(maximum=1e7, minimum=0, value=1234, label='Seed')
 
-        demo.launch(share=True)
+                with gr.Group():
+                    btn = gr.Button(value='Generate Shape Only', variant='primary')
+                    btn_all = gr.Button(value='Generate Shape and Texture', variant='primary')
+
+                with gr.Group():
+                    file_out = gr.DownloadButton(label="Download White Mesh", interactive=False)
+                    file_out2 = gr.DownloadButton(label="Download Textured Mesh", interactive=False)
+
+            with gr.Column(scale=5):
+                with gr.Tabs():
+                    with gr.Tab('Generated Mesh') as mesh1:
+                        html_output1 = gr.HTML("<div style='height: 596px; width: 100%;'></div>", label='Output')
+                    with gr.Tab('Generated Textured Mesh') as mesh2:
+                        html_output2 = gr.HTML("<div style='height: 596px; width: 100%;'></div>", label='Output')
+
+        btn.click(
+            shape_generation,
+            inputs=[caption, image, num_steps, cfg_scale, seed, octree_resolution, check_box_rembg],
+            outputs=[file_out, html_output1]
+        )
+
+        btn_all.click(
+            generation_all,
+            inputs=[caption, image, num_steps, cfg_scale, seed, octree_resolution, check_box_rembg],
+            outputs=[file_out, file_out2, html_output1, html_output2]
+        )
 
     return demo
 
-# 모델 처리 함수
-def process_model(image, description):
-    # 모델 생성 함수, 이미지를 사용하고 텍스트로 설명을 받음
-    print("Processing model with image and description...")
-    save_folder = os.path.join(SAVE_DIR, str(uuid.uuid4()))
-    os.makedirs(save_folder, exist_ok=True)
-    
-    # 모델을 텍스쳐화된 형태로 생성하는 코드
-    result_html = build_model_viewer_html(save_folder, textured=True)
-    return result_html
 
-if __name__ == '__main__':
-    # FastAPI 앱 생성
-    app = FastAPI()
-    static_dir = Path('./gradio_cache')
-    static_dir.mkdir(parents=True, exist_ok=True)
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-    demo = build_app()
-    demo.queue(max_size=10)
-    
-    # Gradio 앱을 FastAPI와 통합
-    app = gr.mount_gradio_app(app, demo, path="/")
-    
-    uvicorn.run(app, host=IP, port=PORT)
+# Running Gradio app
+demo = build_app()
+demo.queue(max_size=10)
+demo.launch(server_port=args.port, server_name="0.0.0.0", share=True)
