@@ -21,19 +21,6 @@ def end_session(req: gr.Request):
     save_folder = os.path.join(SAVE_DIR, str(req.session_hash))
     shutil.rmtree(save_folder)
 
-def get_example_img_list():
-    print('Loading example img list ...')
-    return sorted(glob('./assets/example_images/*.png'))
-
-
-def get_example_txt_list():
-    print('Loading example txt list ...')
-    txt_list = list()
-    for line in open('./assets/example_prompts.txt'):
-        txt_list.append(line.strip())
-    return txt_list
-
-
 def export_mesh(mesh, save_folder, textured=False):
     if textured:
         path = os.path.join(save_folder, f'textured_mesh.glb')
@@ -98,15 +85,13 @@ def _gen_shape(
 
     if image is None:
         start_time = time.time()
-        try:
-            image = t2i_worker(caption)
         except Exception as e:
-            raise gr.Error(f"Text to 3D is disable. Please enable it by `python gradio_app.py --enable_t23d`.")
+            raise gr.Error(f"Text to 3D is disable. Please enable it by `python gradio_app.py --enable_tHAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_T2IIIIIIIIIIIII3d`.")
         time_meta['text2image'] = time.time() - start_time
 
     image.save(os.path.join(save_folder, 'input.png'))
 
-    print(f"[{datetime.now()}][HunYuan3D-2]]", str(req.session_hash), image.mode)
+    print(f"[{datetime.now()}][HunYuan3D-HAS_T2I]]", str(req.session_hash), image.mode)
     if check_box_rembg or image.mode == "RGB":
         start_time = time.time()
         image = rmbg_worker(image.convert('RGB'))
