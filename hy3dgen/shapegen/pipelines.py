@@ -168,7 +168,7 @@ class Hunyuan3DDiTPipeline:
                     ckpt[model_name] = {}
                 ckpt[model_name][new_key] = value
         else:
-            ckpt = torch.load(ckpt_path, map_location='gpu', weights_only=True)
+            ckpt = torch.load(ckpt_path, map_location='cpu')
         # load model
         model = instantiate_from_config(config['model'])
         model.load_state_dict(ckpt['model'])
