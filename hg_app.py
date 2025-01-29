@@ -40,6 +40,10 @@ def generation_all(
     # Full generation logic for texture and mesh...
     pass
 
+# 예시 이미지 리스트를 반환하는 함수 추가
+def get_example_img_list():
+    return ["example_image_1.jpg", "example_image_2.jpg"]  # 실제 예시 이미지 경로로 교체
+
 def build_app():
     title_html = """
     <div style="font-size: 2em; font-weight: bold; text-align: center; margin-bottom: 5px">
@@ -83,7 +87,13 @@ def build_app():
                     with gr.Row():
                         generate_btn = gr.Button(value='Generate')
 
-                gr.Examples(examples=get_example_img_list(), fn=generation_all, inputs=[caption, image, steps, guidance_scale, seed, octree_resolution, check_box_rembg], outputs=["file", "file", "html", "html"])
+                # 예시 이미지 기능 추가
+                gr.Examples(
+                    examples=get_example_img_list(),  # 예시 이미지 리스트 가져오기
+                    fn=generation_all,
+                    inputs=[caption, image, steps, guidance_scale, seed, octree_resolution, check_box_rembg],
+                    outputs=["file", "file", "html", "html"]
+                )
 
     return demo
 
