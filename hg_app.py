@@ -42,7 +42,7 @@ def generation_all(
 ):
     print("🚀 3D 모델 생성 시작")
     
-    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained("Hunyuan3D-2")
+    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained("tencent/Hunyuan3D-2")
     save_folder = os.path.join(SAVE_DIR, "output")
     os.makedirs(save_folder, exist_ok=True)
 
@@ -63,7 +63,7 @@ def generation_all(
 
     # 텍스처 생성
     print("🎨 텍스처 생성 중...")
-    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained("Hunyuan3D-2")
+    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained("tencent/Hunyuan3D-2")
     textured_mesh = texgen_worker(mesh, image)
     textured_mesh_path = os.path.join(save_folder, "textured_mesh.glb")
     textured_mesh.export(textured_mesh_path, include_normals=True)
