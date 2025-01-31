@@ -24,12 +24,6 @@ device = torch.device("cpu")
 print(f"🔥 실행 장치: {device}")
 
 if not args.local:
-    print("🔹 Hugging Face Spaces에서 실행 중")
-    
-    # **custom_rasterizer 설치**
-    print("🔹 custom_rasterizer 설치 중...")
-    subprocess.run(shlex.split("pip install --no-cache-dir custom_rasterizer-0.1-cp310-cp310-linux_x86_64.whl"), check=True)
-
     IP = "0.0.0.0"
     PORT = 7860
 else:
