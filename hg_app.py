@@ -109,7 +109,7 @@ def generation_all(
     path = export_mesh(mesh, save_folder, textured=False)
     model_viewer_html = build_model_viewer_html(save_folder, height=596, width=700)
     from hy3dgen.texgen import Hunyuan3DPaintPipeline
-        texgen_worker = Hunyuan3DPaintPipeline.from_pretrained(Hunyuan3D-2)
+    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained(Hunyuan3D-2)
     print("🎨 텍스처 생성 중...")
     textured_mesh = texgen_worker(mesh, image)
     path_textured = export_mesh(textured_mesh, save_folder, textured=True)
