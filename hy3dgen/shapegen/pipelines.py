@@ -39,6 +39,7 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
+device = torch.device("cpu")  # GPU 대신 CPU로 설정
 
 def retrieve_timesteps(
     scheduler,
