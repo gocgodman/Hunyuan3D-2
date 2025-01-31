@@ -29,15 +29,56 @@ if not args.local:
 else:
     IP = "0.0.0.0"
     PORT = 8080
+def export_mesh(mesh, save_folder, textured=False):
+    if textured:
+        path = os.path.join(save_folder, f'textured_mesh.glb')
+    else:
+        path = os.path.join(save_folder, f'white_mesh.glb')
+    mesh.export(path, include_normals=textured)
+    return path
 
-# **예제 데이터 불러오기**
-def get_example_img_list():
-    return sorted(glob('./assets/example_images/*.png'))
+def build_model_viewer_html(save_folder, height=660, width=790, textured=False):
+    if textured:
+        related_path = f"./textured_mesh.glb"
+        template_name = './assets/modelviewer-textured-template.html'
+        output_html_path = os.path.join(save_folder, f'{uuid.uuid4()}_textured_mesh.html')
+    else:
+        related_path = f"./white_mesh.glb"
+        template_name = './assets/modelviewer-template.html'
+        output_html_path = os.path.join(save_folder, f'{uuid.uuid4()}_white_mesh.html')
 
-def get_example_txt_list():
-    with open('./assets/example_prompts.txt') as f:
-        return [line.strip() for line in f]
+    with open(os.path.join(CURRENT_DIR, template_name), 'r') as f:
+        template_html = f.read()
+        obj_html = f"""
+            <div class="column is-mobile is-centered">
+                <model-viewer style="height: {height - 10}px; width: {width}px;" rotation-per-second="10deg" id="modelViewer"
+                    src="{related_path}/" disable-tap 
+                    environment-image="neutral" auto-rotate camera-target="0m 0m 0m" orientation="0deg 0deg 170deg" shadow-intensity=".9"
+                    ar auto-rotate camera-controls>
+                </model-viewer>
+            </div>
+            """
 
+    with open(output_html_path, 'w') as f:
+        f.write(template_html.replace('<model-viewer>', obj_html))
+
+    output_html_path = output_html_path.replace(SAVE_DIR + '/', '')
+    iframe_tag = f'<iframe src="/static/{output_html_path}" height="{height}" width="100%" frameborder="0"></iframe>'
+    print(f'Find html {output_html_path}, {os.path.exists(output_html_path)}')
+
+    # rel_path = os.path.relpath(output_html_path, SAVE_DIR)
+    # iframe_tag = f'<iframe src="/static/{rel_path}" height="{height}" width="100%" frameborder="0"></iframe>'
+    # print(f'Find html file {output_html_path}, {os.path.exists(output_html_path)}, relative HTML path is /static/{rel_path}')
+
+    return f"""
+        <div style='height: {height}; width: 100%;'>
+        {iframe_tag}
+        </div>
+    """
+
+
+from hy3dgen.texgen import Hunyuan3DPaintPipeline
+from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline
 # **3D 모델 변환 로직 (CPU 기반)**
 def generation_all(
     caption: str,
@@ -46,11 +87,10 @@ def generation_all(
     guidance_scale: float,
     seed: int,
     octree_resolution: int,
-    check_box_rembg: bool,
     req: gr.Request,
 ):
     print("🚀 3D 모델 생성 시작")
-    
+    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(Hunyuan3D-2)
     save_folder = os.path.join(SAVE_DIR, str(req.session_hash)) 
     os.makedirs(save_folder, exist_ok=True)
 
@@ -68,7 +108,8 @@ def generation_all(
 
     path = export_mesh(mesh, save_folder, textured=False)
     model_viewer_html = build_model_viewer_html(save_folder, height=596, width=700)
-
+    from hy3dgen.texgen import Hunyuan3DPaintPipeline
+        texgen_worker = Hunyuan3DPaintPipeline.from_pretrained(Hunyuan3D-2)
     print("🎨 텍스처 생성 중...")
     textured_mesh = texgen_worker(mesh, image)
     path_textured = export_mesh(textured_mesh, save_folder, textured=True)
@@ -90,18 +131,5 @@ if __name__ == '__main__':
     CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
     SAVE_DIR = os.path.join(CURRENT_DIR, args.cache_path)
     os.makedirs(SAVE_DIR, exist_ok=True)
-
-    example_is = get_example_img_list()
-    example_ts = get_example_txt_list()
-
-    # **모델 불러오기 (CPU)**
-    # 모델 로드 부분 수정
-from hy3dgen.text2image import HunyuanDiTPipeline
-
-# CPU 강제 적용
-t2i_worker = HunyuanDiTPipeline.from_pretrained(
-    'Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled',
-    device_map="cpu"  # ✅ GPU 없이 실행 가능하도록 설정
-).to(device)
 
 uvicorn.run(app, host=IP, port=PORT)
