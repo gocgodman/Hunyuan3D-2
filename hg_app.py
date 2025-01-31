@@ -85,7 +85,6 @@ def _gen_shape(
 
     if image is None:
         start_time = time.time()
-        except Exception as e:
             raise gr.Error(f"Text to 3D is disable. Please enable it by `python gradio_app.py --enable_tHAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_THAS_T2IIIIIIIIIIIII3d`.")
         time_meta['text2image'] = time.time() - start_time
 
