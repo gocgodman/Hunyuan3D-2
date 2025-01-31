@@ -26,48 +26,7 @@ args = parser.parse_args()
 # 로컬 모드에서 실행되지 않도록 조건부 처리
 if not args.local:
     import subprocess
-    import shlex
-
-    # 시스템 정보 확인 함수
-    def get_system_info():
-        system_info = {
-            'os': platform.system(),
-            'architecture': platform.architecture()[0],
-            'python_version': platform.python_version(),
-            'machine': platform.machine(),
-            'processor': platform.processor()
-        }
-        return system_info
-
-    # 호환되는 .whl 파일 찾기
-    def find_compatible_whl(system_info):
-        python_version = system_info['python_version']
-        architecture = system_info['architecture']
-        whl_filename = f"custom_rasterizer-0.1-cp{python_version.replace('.', '')}-cp{python_version.replace('.', '')}-linux_{architecture}.whl"
-        
-        if os.path.exists(whl_filename):
-            return whl_filename
-        else:
-            print(f"Warning: {whl_filename} does not exist in the current directory.")
-            return None
-
-    # 시스템 정보 출력
-    system_info = get_system_info()
-    print(f"Detected system info: {system_info}")
-
-    # 호환되는 whl 파일 찾고 설치
-    whl_file = find_compatible_whl(system_info)
-    if whl_file:
-        print(f"Installing {whl_file}...")
-        subprocess.run(["pip", "install", whl_file], check=True)
-        print("Installation successful!")
-    else:
-        print("No compatible .whl file found to install.")
-
-    # 필요한 스크립트 실행
-    print("cd /home/user/app/hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-    os.system("cd /hy3dgen/texgen/differentiable_renderer/ && bash compile_mesh_painter.sh")
-
+    import shlex 
     # 실행된 경우 IP, PORT 설정
     IP = "0.0.0.0"
     PORT = 7860
