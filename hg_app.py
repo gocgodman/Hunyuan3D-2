@@ -7,6 +7,10 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from PIL import Image
+from huggingface_hub import login
+
+# 자신의 허깅페이스 토큰을 입력하세요
+login(token="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")
 
 # **CLI 인자 설정**
 parser = argparse.ArgumentParser()
