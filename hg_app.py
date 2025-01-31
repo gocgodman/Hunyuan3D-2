@@ -101,7 +101,13 @@ if __name__ == '__main__':
     example_ts = get_example_txt_list()
 
     # **모델 불러오기 (CPU)**
-    from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline
-    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained('tencent/Hunyuan3D-2').to(device)
+    # 모델 로드 부분 수정
+from hy3dgen.text2image import HunyuanDiTPipeline
+
+# CPU 강제 적용
+t2i_worker = HunyuanDiTPipeline.from_pretrained(
+    'Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled',
+    device_map="cpu"  # ✅ GPU 없이 실행 가능하도록 설정
+).to(device)
 
     uvicorn.run(app, host=IP, port=PORT)
