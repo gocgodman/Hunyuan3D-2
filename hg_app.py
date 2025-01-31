@@ -110,4 +110,4 @@ t2i_worker = HunyuanDiTPipeline.from_pretrained(
     device_map="cpu"  # ✅ GPU 없이 실행 가능하도록 설정
 ).to(device)
 
-    uvicorn.run(app, host=IP, port=PORT)
+uvicorn.run(app, host=IP, port=PORT)
