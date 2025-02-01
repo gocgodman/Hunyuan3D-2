@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class Hunyuan3DTexGenConfig:
 
     def __init__(self, light_remover_ckpt_path, multiview_ckpt_path):
-        self.device = 'cuda'
+        self.device = 'cpu'
         self.light_remover_ckpt_path = light_remover_ckpt_path
         self.multiview_ckpt_path = multiview_ckpt_path
 
@@ -96,7 +96,7 @@ class Hunyuan3DPaintPipeline:
 
     def load_models(self):
         # empty cude cache
-        torch.cuda.empty_cache()
+        torch.empty_cache()
         # Load model
         self.models['delight_model'] = Light_Shadow_Remover(self.config)
         self.models['multiview_model'] = Multiview_Diffusion_Net(self.config)
