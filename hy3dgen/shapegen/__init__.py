@@ -21,6 +21,7 @@
 # optimizer states), machine-learning model code, inference-enabling code, training-enabling code,
 # fine-tuning enabling code and other elements of the foregoing made publicly available
 # by Tencent in accordance with TENCENT HUNYUAN COMMUNITY LICENSE AGREEMENT.
+import torch
 device = torch.device("cpu")  # GPU 대신 CPU로 설정
 from .pipelines import Hunyuan3DDiTPipeline, Hunyuan3DDiTFlowMatchingPipeline
 from .postprocessors import FaceReducer, FloaterRemover, DegenerateFaceRemover
