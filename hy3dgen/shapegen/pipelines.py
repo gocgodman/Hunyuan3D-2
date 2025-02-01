@@ -141,8 +141,8 @@ class Hunyuan3DDiTPipeline:
         cls,
         ckpt_path,
         config_path,
-        device='cuda',
-        dtype=torch.float16,
+        device='cpu',
+        dtype=torch.float32,
         use_safetensors=None,
         **kwargs,
     ):
@@ -203,8 +203,8 @@ class Hunyuan3DDiTPipeline:
         model_path,
         ckpt_name='model.ckpt',
         config_name='config.yaml',
-        device='cuda',
-        dtype=torch.float16,
+        device='cpu',
+        dtype=torch.float32,
         use_safetensors=None,
         **kwargs,
     ):
@@ -245,8 +245,8 @@ class Hunyuan3DDiTPipeline:
         scheduler,
         conditioner,
         image_processor,
-        device='cuda',
-        dtype=torch.float16,
+        device='cpu',
+        dtype=torch.float32,
         **kwargs
     ):
         self.vae = vae
