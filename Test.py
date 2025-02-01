@@ -1,9 +1,9 @@
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline
 import torch
-
+from huggingface_hub import from_pretrained 
 try:
     print("📥 모델 로드 시도...")
-    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained("tencent/Hunyuan3D-2")
+    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained("tencent/Hunyuan3D-2").to("cpu")
     
     if i23d_worker is None:
         raise ValueError("❌ 모델 로드 실패: None 반환됨")
