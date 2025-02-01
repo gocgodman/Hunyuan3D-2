@@ -45,8 +45,9 @@ def generation_all(
     # 🔹 CPU에서 실행하도록 변경
     i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
         "tencent/Hunyuan3D-2",
-        torch_dtype=torch.float32  # 🔹 CPU 호환 가능하도록 변경
-    ).to(device)
+        torch_dtype=torch.float32  # ✅ CPU 모드에서 실행 가능하도록 수정
+    ).to("cpu")  # ✅ 명확하게 CPU로 설정
+
 
     save_folder = os.path.join(SAVE_DIR, "output")
     os.makedirs(save_folder, exist_ok=True)
@@ -70,8 +71,9 @@ def generation_all(
     print("🎨 텍스처 생성 중...")
     texgen_worker = Hunyuan3DPaintPipeline.from_pretrained(
         "tencent/Hunyuan3D-2",
-        torch_dtype=torch.float32  # 🔹 CPU 모드 설정
-    ).to(device)
+        torch_dtype=torch.float32  # ✅ CPU 모드에서 실행 가능하도록 수정
+    ).to("cpu")  # ✅ 명확하게 CPU로 설정
+
 
     textured_mesh = texgen_worker(mesh, image)
     textured_mesh_path = os.path.join(save_folder, "textured_mesh.glb")
