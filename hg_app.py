@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from PIL import Image
 from huggingface_hub import login
+import torch  # 🔹 PyTorch 추가 (CPU 모드로 설정)
 
 # 자신의 허깅페이스 토큰을 입력하세요
 login(token="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")
@@ -19,8 +20,8 @@ parser.add_argument('--enable_t23d', default=True)
 parser.add_argument('--local', action="store_true")
 args = parser.parse_args()
 
-# **GPU 대신 CPU 사용**
-device = ("cpu")
+# **GPU 대신 CPU 강제 사용**
+device = "cpu"  # 🔹 GPU 없이 CPU로만 실행
 print(f"🔥 실행 장치: {device}")
 
 # 서버 설정
@@ -41,11 +42,16 @@ def generation_all(
 ):
     print("🚀 3D 모델 생성 시작")
     
-    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained("tencent/Hunyuan3D-2")
+    # 🔹 CPU에서 실행하도록 변경
+    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
+        "tencent/Hunyuan3D-2",
+        torch_dtype=torch.float32  # 🔹 CPU 호환 가능하도록 변경
+    ).to(device)
+
     save_folder = os.path.join(SAVE_DIR, "output")
     os.makedirs(save_folder, exist_ok=True)
 
-    generator = Generator(device=device).manual_seed(int(seed))
+    generator = torch.Generator(device=device).manual_seed(int(seed))  # 🔹 CPU 전용 Generator 사용
 
     # 3D 모델 생성
     mesh = i23d_worker(
@@ -60,9 +66,13 @@ def generation_all(
     white_mesh_path = os.path.join(save_folder, "white_mesh.glb")
     mesh.export(white_mesh_path, include_normals=False)
 
-    # 텍스처 생성
+    # 텍스처 생성 (CPU 모드)
     print("🎨 텍스처 생성 중...")
-    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained("tencent/Hunyuan3D-2")
+    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained(
+        "tencent/Hunyuan3D-2",
+        torch_dtype=torch.float32  # 🔹 CPU 모드 설정
+    ).to(device)
+
     textured_mesh = texgen_worker(mesh, image)
     textured_mesh_path = os.path.join(save_folder, "textured_mesh.glb")
     textured_mesh.export(textured_mesh_path, include_normals=True)
