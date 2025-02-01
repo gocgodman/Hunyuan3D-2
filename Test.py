@@ -1,6 +1,6 @@
 from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline
 import torch
-from huggingface_hub import from_pretrained 
+from transformers import from_pretrained 
 
 try:
     print("📥 모델 로드 시도...")
