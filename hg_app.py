@@ -21,7 +21,7 @@ parser.add_argument('--local', action="store_true")
 args = parser.parse_args()
 
 # **GPU 대신 CPU 사용**
-device = torch.device("cpu")
+device = ("cpu")
 print(f"🔥 실행 장치: {device}")
 
 # 서버 설정
