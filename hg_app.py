@@ -55,7 +55,7 @@ def generation_all(
     generator = torch.Generator(device=device).manual_seed(int(seed))  # 🔹 CPU 전용 Generator 사용
 
     # 3D 모델 생성
-    mesh = i23d_worker(
+    mesh = i23d_worker.forward(
         image=image,
         num_inference_steps=steps,
         guidance_scale=guidance_scale,
