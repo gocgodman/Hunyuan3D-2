@@ -7,7 +7,6 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 from PIL import Image
 from huggingface_hub import login
-from huggingface_hub import from_pretrained
 import torch  # 🔹 PyTorch 추가 (CPU 모드로 설정)
 
 # 자신의 허깅페이스 토큰을 입력하세요
