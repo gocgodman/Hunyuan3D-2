@@ -1,6 +1,5 @@
 import argparse
 import os
-import torch
 import gradio as gr
 import uvicorn
 from fastapi import FastAPI
@@ -46,7 +45,7 @@ def generation_all(
     save_folder = os.path.join(SAVE_DIR, "output")
     os.makedirs(save_folder, exist_ok=True)
 
-    generator = torch.Generator(device=device).manual_seed(int(seed))
+    generator = Generator(device=device).manual_seed(int(seed))
 
     # 3D 모델 생성
     mesh = i23d_worker(
