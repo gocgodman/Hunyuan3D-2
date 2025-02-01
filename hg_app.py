@@ -29,8 +29,8 @@ IP = "0.0.0.0"
 PORT = 7860 if not args.local else 8080
 
 # **3D 모델 변환 함수**
-from hy3dgen.shapegen import Hunyuan3DDiTFlowMatchingPipeline
-from hy3dgen.texgen import Hunyuan3DPaintPipeline
+from hy3dgen.shapegen.pipelines import Hunyuan3DDiTFlowMatchingPipeline
+from hy3dgen.texgen.pipelines import Hunyuan3DPaintPipeline
 import torch
 
 try:
