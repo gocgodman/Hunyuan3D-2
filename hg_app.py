@@ -44,8 +44,7 @@ def generation_all(
     print("🚀 3D 모델 생성 시작")
     
     # 🔹 CPU에서 실행하도록 변경
-    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
-        "tencent/Hunyuan3D-2").to("cpu")  # ✅ 명확하게 CPU로 설정
+    i23d_worker = Hunyuan3DDiTFlowMatchingPipeline.from_pretrained("tencent/Hunyuan3D-2")  # ✅ 명확하게 CPU로 설정
 
 
     save_folder = os.path.join(SAVE_DIR, "output")
@@ -68,9 +67,7 @@ def generation_all(
 
     # 텍스처 생성 (CPU 모드)
     print("🎨 텍스처 생성 중...")
-    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained(
-        "tencent/Hunyuan3D-2",
-        torch_dtype=torch.float32).to("cpu")  # ✅ 명확하게 CPU로 설정
+    texgen_worker = Hunyuan3DPaintPipeline.from_pretrained("tencent/Hunyuan3D-2") # ✅ 명확하게 CPU로 설정
 
 
     textured_mesh = texgen_worker(mesh, image)
