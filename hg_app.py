@@ -40,7 +40,6 @@ try:
     if i23d_worker is None:
         raise ValueError("❌ 모델 로드 실패: None 반환됨")
 
-    i23d_worker = i23d_worker.to("cpu")
     print("✅ 모델 로드 성공:", type(i23d_worker))
 
 except Exception as e:
