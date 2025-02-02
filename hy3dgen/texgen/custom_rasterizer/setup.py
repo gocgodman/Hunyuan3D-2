@@ -1,15 +1,17 @@
 from setuptools import setup, find_packages
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+from torch.utils.cpp_extension import BuildExtension
 
 # build custom rasterizer
 # build with `python setup.py install`
 # nvcc is needed
 
-custom_rasterizer_module = CUDAExtension('custom_rasterizer_kernel', [
+from torch.utils.cpp_extension import CppExtension
+
+custom_rasterizer_module = CppExtension('custom_rasterizer_kernel', [
     'lib/custom_rasterizer_kernel/rasterizer.cpp',
-    'lib/custom_rasterizer_kernel/grid_neighbor.cpp',
-    'lib/custom_rasterizer_kernel/rasterizer_gpu.cu',
+    'lib/custom_rasterizer_kernel/grid_neighbor.cpp'
 ])
+
 
 setup(
     packages=find_packages(),
